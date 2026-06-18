@@ -1,0 +1,103 @@
+import {RectState} from "../geometry/state";
+import * as controlCss from "./control.css?raw";
+
+// type Declaration = [property: string, value: string, important?: boolean];
+// type Block = [
+//   selector: string,
+//   ...declaration: Declaration[]
+// ]
+// type CSSRules = Block[];
+
+const STYLE_ID = "mGW3wTwrZ6";
+const CONTROLS_ID = "E4UKgq3cxN";
+const CONTROL_COL = "#44a9fe";
+
+export function getControlBox(): HTMLDivElement {
+  const box: HTMLDivElement = document.querySelector(`#${CONTROLS_ID}`)
+    || document.body.appendChild(document.createElement("div"));
+  box.id = CONTROLS_ID;
+  box.style.setProperty("--control-color", CONTROL_COL);
+  appendStylesheetRules((controlCss.default as string).replace(/CONTROL_ID/gm, CONTROLS_ID), "control-box");
+  return box;
+}
+
+/**
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleSheet/insertRule#examples
+ */
+export function appendStylesheetRules(str: string, id?: string) {
+  const styleEl = (document.querySelector(`#${STYLE_ID}`)
+    || document.head.appendChild(document.createElement("style"))) as HTMLStyleElement;
+  styleEl.id = STYLE_ID;
+
+  if (id) {
+    styleEl.dataset.moveItAdded ??= "";
+    if ((styleEl.dataset.moveItAdded).split(" ").includes(id)) return;
+    else styleEl.dataset.moveItAdded += `${styleEl.dataset.moveItAdded.length > 0 ? " " : ""}${id}`;
+  }
+
+  const styleSheet = styleEl.sheet;
+
+  if (!styleSheet) {
+    throw new Error("could not retrieve stylesheet in appendStylesheetRules");
+  }
+
+  // for (let block of rules) {
+  //   let selector = block[0];
+  //   let decStr = block.slice(1)
+  //     .map(dec => `  ${dec[0]}: ${dec[1]}${dec[2] ? "!important" : ""};`)
+  //     .join("\n");
+  //
+  //   // Insert CSS Rule
+  //   const rule = `${selector} {\n${decStr}\n}`;
+  //   styleSheet.insertRule(
+  //     rule,
+  //     styleSheet.cssRules.length,
+  //   );
+  //   console.log(styleSheet.cssRules)
+  // }
+
+  styleEl.textContent += str;
+}
+
+export function renderToCss(el: HTMLElement, state: RectState) {
+  el.style.width = `${state.width}px`;
+  el.style.height = `${state.height}px`;
+  el.style.transform = ` 
+      translate(${state.x}px, ${state.y}px)
+      rotate(${state.rotation}deg)
+    `;
+}
+
+/**
+ * Retrieved & modified from the OP's fixed CodePen snippet
+ * @see https://stackoverflow.com/questions/19574171/how-to-get-css-transform-rotation-value-in-degrees-with-javascript
+ */
+export function getRotation(el: HTMLElement) {
+  let st = window.getComputedStyle(el, null);
+  let tr = st.getPropertyValue("-webkit-transform") ||
+    st.getPropertyValue("-moz-transform") ||
+    st.getPropertyValue("-ms-transform") ||
+    st.getPropertyValue("-o-transform") ||
+    st.getPropertyValue("transform") ||
+    "none";
+
+  let angle: number;
+
+  if (tr !== "none") {
+    let values: string | string[] = tr.split('(')[1];
+    values = values.split(')')[0];
+    values = values.split(',');
+    let a = Number(values[0]);
+    let b = Number(values[1]);
+
+    let radians = Math.atan2(b, a);
+    if (radians < 0) {
+      radians += (2 * Math.PI);
+    }
+    angle = Math.round(radians * (180 / Math.PI));
+  } else {
+    angle = 0;
+  }
+
+  return angle;
+}
