@@ -78,3 +78,7 @@
 #CONTROL_ID .dot[data-move-it-designation="rotate"] {
   cursor: move;
 }
+
+*[data-move-it-id] {
+  cursor: move;
+}
