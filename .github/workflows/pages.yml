@@ -33,7 +33,10 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v3
         with:
+          name: github-pages-playground-${{ github.run_attempt }}
           path: dist-playground
 
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-playground-${{ github.run_attempt }}
