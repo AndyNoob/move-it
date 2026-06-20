@@ -10,12 +10,23 @@ w.moveMe = moveMe(el, {
     y: 200,
     width: 200,
     height: 120,
-    rotation: 95
+    rotation: 0
   },
   onChange(next) {
-    // console.log(next);
     localStorage.setItem('rect', JSON.stringify(next));
   },
+  snapping: {
+    rotation: {
+      anglesDeg: [0, 180],
+      threshold: 5
+    },
+    grid: {
+      displayThreshold: 20,
+      threshold: 5,
+      verticalX: [window.innerWidth / 2]
+    }
+  },
+  controlRoot: document.body
 });
 
 

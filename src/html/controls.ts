@@ -1,7 +1,9 @@
-import {getControlBox} from "./htmlUtil";
-import {Moving} from "./moveMe";
+import {getControlBox, getDistanceToLine} from "./htmlUtil";
+import {Moving, SnappingOpt} from "./moveMe";
 import {normalizeDeg} from "../geometry/geometry";
+import {RectState} from "../geometry/state";
 
+//<editor-fold defaultstate="collapsed" desc="Control interface">
 export interface Controls {
   container: HTMLElement,
   lines: {
@@ -17,71 +19,78 @@ export interface Controls {
     bottomLeft: HTMLElement,
     bottomRight: HTMLElement,
     rotate: HTMLElement,
+  },
+  guides: {
+    vertical: HTMLElement[],
+    horizontal: HTMLElement[]
   }
   destroy: () => void,
   getDotDesignation: (el: HTMLElement) => DotDesignation | null,
   getLineDesignation: (el: HTMLElement) => Exclude<LineDesignation, "rotate"> | null,
 }
 
+//</editor-fold>
+
+// <editor-fold defaultstate="collapsed" desc="Designations">
 export const lineDesignations = {
   top: {
     name: "top",
-    direction: { x: 0, y: -1 },
+    direction: {x: 0, y: -1},
     cardinal: true
   },
 
   bottom: {
     name: "bottom",
-    direction: { x: 0, y: 1 },
+    direction: {x: 0, y: 1},
     cardinal: true
   },
 
   left: {
     name: "left",
-    direction: { x: -1, y: 0 },
+    direction: {x: -1, y: 0},
     cardinal: true
   },
 
   right: {
     name: "right",
-    direction: { x: 1, y: 0 },
+    direction: {x: 1, y: 0},
     cardinal: true
   },
 
   rotate: {
     name: "rotate",
-    direction: { x: 0, y: 0 },
+    direction: {x: 0, y: 0},
     cardinal: false
   },
 };
 export const dotDesignations = {
   topLeft: {
     name: "topLeft",
-    direction: { x: -1, y: -1 },
+    direction: {x: -1, y: -1},
     cardinal: false
   },
 
   topRight: {
     name: "topRight",
-    direction: { x: 1, y: -1 },
+    direction: {x: 1, y: -1},
     cardinal: false
   },
 
   bottomLeft: {
     name: "bottomLeft",
-    direction: { x: -1, y: 1 },
+    direction: {x: -1, y: 1},
     cardinal: false
   },
 
   bottomRight: {
     name: "bottomRight",
-    direction: { x: 1, y: 1 },
+    direction: {x: 1, y: 1},
     cardinal: false
   },
 
   rotate: {
     name: "rotate",
-    direction: { x: 0, y: 0 },
+    direction: {x: 0, y: 0},
     cardinal: false
   },
 };
@@ -91,26 +100,22 @@ export type LineDesignation =
 
 export type DotDesignation =
   typeof dotDesignations[keyof typeof dotDesignations];
+// </editor-fold>
 
 const LINE_SIZE = 1;
 const DOT_SIZE = 5;
 const ROTATE_WIDTH = 20;
 
-export function updateControls(el: HTMLElement, moving: Moving, selected = true): Controls {
+export function updateControls(el: HTMLElement, moving: Moving, snapping: SnappingOpt | undefined, selected = true): Controls {
   const target = el.dataset.moveItId!;
   const box = getControlBox();
   const container: HTMLElement =
     document.querySelector(`.container[data-move-it-target=${target}]`) ||
     box.appendChild(document.createElement("div"));
-  container.style.visibility = selected ? "visible" : "hidden";
-  container.classList.contains("container") || container.classList.add("container");
-  container.dataset.moveItTarget = target;
   const state = moving.state;
-  container.style.transformOrigin = `${el.offsetWidth / 2}px ${el.offsetHeight / 2}px`;
-  container.style.transform = `
-    translate(${state.x - LINE_SIZE / 2}px, ${state.y - LINE_SIZE / 2}px)
-    rotate(${state.rotation}deg)
-  `;
+
+  updateContainer(container, selected, target, el, state);
+
   return {
     container,
     lines: {
@@ -127,6 +132,7 @@ export function updateControls(el: HTMLElement, moving: Moving, selected = true)
       bottomRight: getDot(container, target, dotDesignations.bottomRight, moving),
       rotate: getDot(container, target, dotDesignations.rotate, moving)
     },
+    guides: getGuides(box, target, moving, snapping),
     destroy: () => {
       container.replaceChildren();
       container.remove();
@@ -145,6 +151,17 @@ export function updateControls(el: HTMLElement, moving: Moving, selected = true)
       return lineDesignations[key as keyof typeof lineDesignations] as Exclude<LineDesignation, "rotate">;
     }
   };
+}
+
+function updateContainer(container: HTMLElement, selected: boolean, target: string, el: HTMLElement, state: RectState) {
+  container.style.visibility = selected ? "visible" : "hidden";
+  container.classList.contains("container") || container.classList.add("container");
+  container.dataset.moveItTarget = target;
+  container.style.transformOrigin = `${el.offsetWidth / 2}px ${el.offsetHeight / 2}px`;
+  container.style.transform = `
+    translate(${state.x - LINE_SIZE / 2}px, ${state.y - LINE_SIZE / 2}px)
+    rotate(${state.rotation}deg)
+  `;
 }
 
 function getLine(box: HTMLElement, target: string, designation: LineDesignation, moving: Moving) {
@@ -214,6 +231,57 @@ function getDot(box: HTMLElement, target: string, designation: DotDesignation, m
   }
 
   return el;
+}
+
+function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snapping: SnappingOpt | undefined): {
+  vertical: HTMLElement[];
+  horizontal: HTMLElement[]
+} {
+  if (!snapping || !snapping.grid) return {vertical: [], horizontal: []};
+  const allGuides: { vertical: Record<string, HTMLElement>, horizontal: Record<string, HTMLElement> } =
+    {vertical: {}, horizontal: {}} as any;
+  for (let element of controlBox.querySelectorAll(
+    `.vert-grid[data-move-it-target=${target}], .hori-grid[data-move-it-target=${target}]`
+  ) as NodeListOf<HTMLElement>) {
+    if (element.dataset.moveItVal == null) {
+      element.remove();
+      continue;
+    }
+    if (element.classList.contains("vert-grid")) {
+      allGuides.vertical[element.dataset.moveItVal] = element;
+    } else {
+      allGuides.horizontal[element.dataset.moveItVal] = element;
+    }
+  }
+  const rect = moving.element.getBoundingClientRect();
+
+  function makeSureItExists(val: number, vertical: boolean) {
+    const elements = vertical ? allGuides.vertical : allGuides.horizontal;
+    const existing = elements[val];
+    if (getDistanceToLine(rect, val, !vertical) > snapping!.grid!.displayThreshold) {
+      existing?.remove();
+      delete elements[val];
+    } else {
+      const line = existing
+        || controlBox.appendChild(document.createElement("div"));
+      line.classList.contains(vertical ? "vert-grid" : "hori-grid")
+      || line.classList.add(vertical ? "vert-grid" : "hori-grid");
+      line.style.left = `${val}px`;
+      line.dataset.moveItVal = `${val}`;
+      line.dataset.moveItTarget = target;
+      elements[val] = line;
+    }
+  }
+
+  if (snapping.grid.verticalX)
+    for (let vert of snapping.grid.verticalX) {
+      makeSureItExists(vert, true);
+    }
+  if (snapping.grid.horizontalY)
+    for (let hori of snapping.grid.horizontalY) {
+      makeSureItExists(hori, false);
+    }
+  return {horizontal: Object.values(allGuides.horizontal), vertical: Object.values(allGuides.vertical)};
 }
 
 function getResizeCursor(

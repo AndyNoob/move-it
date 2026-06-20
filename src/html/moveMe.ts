@@ -1,11 +1,32 @@
 import {moveRect, RectState, resizeRect, rotateRect} from "../geometry/state";
-import {getRotation, renderToCss} from "./htmlUtil";
+import {getPivot, getRotation, renderToCss} from "./htmlUtil";
 import {Controls, DotDesignation, LineDesignation, updateControls} from "./controls";
 import {cross, delta, dot, normalize, radToDeg, rotate, scale, Vec2} from "../geometry/geometry";
 
 export interface MoveMeOpt {
-  initialState: RectState | undefined,
-  onChange: (next: RectState) => void
+  initialState?: RectState,
+  snapping?: SnappingOpt,
+  onChange?: (next: RectState) => void,
+  controlRoot: HTMLElement
+}
+
+export interface SnappingOpt {
+  rotation?: {
+    anglesDeg: number[],
+    threshold: number
+  },
+  grid?: {
+    /**
+     * number of pixels away to snap the element
+     */
+    threshold: number,
+    /**
+     * number of pixels away to display the nearest grid/guide line
+     */
+    displayThreshold: number,
+    verticalX?: number[],
+    horizontalY?: number[]
+  }
 }
 
 export interface Moving {
@@ -14,10 +35,10 @@ export interface Moving {
   destroy: () => void,
   render: () => void,
   select: () => void,
-  updateControls: () => Controls
+  updateControls: () => Controls,
 }
 
-export function moveMe(element: HTMLElement, option: MoveMeOpt | undefined): Moving {
+export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   element.dataset.moveItId = generateUID();
   let state: RectState | null;
   if (option && (state = option.initialState || null))
@@ -82,6 +103,29 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt | undefined): Mov
       case "drag": {
         const diff = delta(startPos, event);
         state = moveRect(startState, diff.x, diff.y);
+
+        const grid = option?.snapping?.grid;
+        const halfWidth = element.offsetWidth / 2;
+        const halfHeight = element.offsetHeight / 2;
+        const pivot = {x: (state.x + halfWidth), y: (state.y + halfHeight)};
+        if (!event.shiftKey && grid) {
+          if (grid.horizontalY) {
+            for (let number of grid.horizontalY) {
+              if (Math.abs(number - pivot.y) < grid.threshold) {
+                state.y = number - halfHeight;
+                break;
+              }
+            }
+          }
+          if (grid.verticalX) {
+            for (let number of grid.verticalX) {
+              if (Math.abs(number - pivot.x) < grid.threshold) {
+                state.x = number - halfWidth;
+                break;
+              }
+            }
+          }
+        }
         break;
       }
       case "resize": {
@@ -91,22 +135,30 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt | undefined): Mov
         break;
       }
       case "rotate": {
-        const rect = element.getBoundingClientRect();
-
-        const pivot = {
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2
-        };
+        const pivot = getPivot(element);
 
         const toStart = normalize(delta(pivot, startPos));
         const toCur = normalize(delta(pivot, event));
         const rad = Math.atan2(cross(toStart, toCur), dot(toStart, toCur));
-        state = rotateRect(state, startState.rotation + radToDeg(rad));
+        let angle = startState.rotation + radToDeg(rad);
+
+        if (!event.shiftKey && option?.snapping && option.snapping.rotation) {
+          const rotSnap = option.snapping.rotation;
+          for (let number of rotSnap.anglesDeg) {
+            if (Math.abs(angle - number) < rotSnap.threshold) {
+              angle = number;
+              break;
+            }
+          }
+        }
+
+        state = rotateRect(state, angle);
         break;
       }
     }
     lastPos = event;
-    option?.onChange(state!);
+    if (option?.onChange)
+      option?.onChange(state!);
     moving.state = state!;
     render();
   }
@@ -135,7 +187,8 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt | undefined): Mov
       );
     }
     moving.state = state!;
-    option?.onChange(state!);
+    if (option?.onChange)
+      option?.onChange(state!);
     render();
   }
 
@@ -147,7 +200,7 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt | undefined): Mov
 
   function render() {
     renderToCss(element, state!);
-    controls = updateControls(element, moving, selected);
+    controls = updateControls(element, moving, option?.snapping, selected);
   }
 
   const moving: Moving = {
@@ -165,14 +218,14 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt | undefined): Mov
     render,
     select: () => {
       selected = true;
-      controls = updateControls(element, moving);
+      controls = updateControls(element, moving, option?.snapping);
     },
     updateControls: (select = false) => {
-      return controls = updateControls(element, moving, selected = select);
+      return controls = updateControls(element, moving, option?.snapping, selected = select);
     }
   };
 
-  let controls = updateControls(element, moving, false);
+  let controls = updateControls(element, moving, option?.snapping, false);
   return moving
 }
 

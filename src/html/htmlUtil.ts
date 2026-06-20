@@ -11,12 +11,14 @@ import * as controlCss from "./control.css?raw";
 const STYLE_ID = "mGW3wTwrZ6";
 const CONTROLS_ID = "E4UKgq3cxN";
 const CONTROL_COL = "#44a9fe";
+const GRID_COL = "#e8e676";
 
 export function getControlBox(): HTMLDivElement {
   const box: HTMLDivElement = document.querySelector(`#${CONTROLS_ID}`)
     || document.body.appendChild(document.createElement("div"));
   box.id = CONTROLS_ID;
   box.style.setProperty("--control-color", CONTROL_COL);
+  box.style.setProperty("--grid-color", GRID_COL);
   appendStylesheetRules((controlCss.default as string).replace(/CONTROL_ID/gm, CONTROLS_ID), "control-box");
   return box;
 }
@@ -100,4 +102,34 @@ export function getRotation(el: HTMLElement) {
   }
 
   return angle;
+}
+
+export function getDistanceToLine(rect: DOMRect, k: number, horizontal: boolean) {
+  // generated with Gemini
+  if (horizontal) {
+    // Line equation: y = k
+    if (k < rect.top) {
+      return rect.top - k;
+    } else if (k > rect.bottom) {
+      return k - rect.bottom;
+    }
+    return 0; // Line intersects the element vertically
+  } else {
+    // Line equation: x = k
+    if (k < rect.left) {
+      return rect.left - k;
+    } else if (k > rect.right) {
+      return k - rect.right;
+    }
+    return 0; // Line intersects the element horizontally
+  }
+}
+
+export function getPivot(element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2
+  };
 }
