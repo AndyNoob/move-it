@@ -237,7 +237,8 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snap
   vertical: HTMLElement[];
   horizontal: HTMLElement[]
 } {
-  if (!snapping || !snapping.grid) return {vertical: [], horizontal: []};
+  const grid = snapping?.grid;
+  if (!snapping || !grid) return {vertical: [], horizontal: []};
   const allGuides: { vertical: Record<string, HTMLElement>, horizontal: Record<string, HTMLElement> } =
     {vertical: {}, horizontal: {}} as any;
   for (let element of controlBox.querySelectorAll(
@@ -248,9 +249,13 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snap
       continue;
     }
     if (element.classList.contains("vert-grid")) {
-      allGuides.vertical[element.dataset.moveItVal] = element;
+      if (!grid.verticalX?.includes(Number(element.dataset.moveItVal))) {
+        element.remove();
+      } else allGuides.vertical[element.dataset.moveItVal] = element;
     } else {
-      allGuides.horizontal[element.dataset.moveItVal] = element;
+      if (!grid.horizontalY?.includes(Number(element.dataset.moveItVal))) {
+        element.remove();
+      } else allGuides.horizontal[element.dataset.moveItVal] = element;
     }
   }
   const rect = moving.element.getBoundingClientRect();
@@ -259,8 +264,7 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snap
     const elements = vertical ? allGuides.vertical : allGuides.horizontal;
     const existing = elements[val];
     if (getDistanceToLine(rect, val, !vertical) > snapping!.grid!.displayThreshold) {
-      existing?.remove();
-      delete elements[val];
+      if (existing) existing.style.visibility = "hidden";
     } else {
       const line = existing
         || controlBox.appendChild(document.createElement("div"));
@@ -268,18 +272,19 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snap
       || line.classList.add(vertical ? "vert-grid" : "hori-grid");
       !vertical || (line.style.left = `${val}px`);
       vertical || (line.style.top = `${val}px`);
+      line.style.visibility = "visible";
       line.dataset.moveItVal = `${val}`;
       line.dataset.moveItTarget = target;
       elements[val] = line;
     }
   }
 
-  if (snapping.grid.verticalX)
-    for (let vert of snapping.grid.verticalX) {
+  if (grid.verticalX)
+    for (let vert of grid.verticalX) {
       makeSureItExists(vert, true);
     }
-  if (snapping.grid.horizontalY)
-    for (let hori of snapping.grid.horizontalY) {
+  if (grid.horizontalY)
+    for (let hori of grid.horizontalY) {
       makeSureItExists(hori, false);
     }
   return {horizontal: Object.values(allGuides.horizontal), vertical: Object.values(allGuides.vertical)};
