@@ -10,6 +10,7 @@
   position: absolute;
 }
 
+/*noinspection CssUnresolvedCustomProperty*/
 #CONTROL_ID .line {
   position: absolute;
   background-color: var(--control-color) !important;
@@ -36,6 +37,7 @@
   width: 100%;
 }
 
+/*noinspection CssUnresolvedCustomProperty*/
 #CONTROL_ID .dot {
   position: absolute;
   width: 5px;
@@ -76,7 +78,7 @@
 }
 
 #CONTROL_ID .dot[data-move-it-designation="rotate"] {
-  cursor: move;
+  cursor: grab;
 }
 
 *[data-move-it-id] {

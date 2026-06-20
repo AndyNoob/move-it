@@ -1,7 +1,7 @@
-import {moveRect, RectState, resizeRect} from "../geometry/state";
+import {moveRect, RectState, resizeRect, rotateRect} from "../geometry/state";
 import {getRotation, renderToCss} from "./htmlUtil";
-import {Controls, DotDesignation, LineDesignation, updateControls} from "../geometry/controls";
-import {abs, dot, normalize, rotate, scale} from "../geometry/geometry";
+import {Controls, DotDesignation, LineDesignation, updateControls} from "./controls";
+import {cross, delta, dot, normalize, radToDeg, rotate, scale, Vec2} from "../geometry/geometry";
 
 export interface MoveMeOpt {
   initialState: RectState | undefined,
@@ -17,16 +17,11 @@ export interface Moving {
   updateControls: () => Controls
 }
 
-interface PointerPos {
-  x: number,
-  y: number
-}
-
 export function moveMe(element: HTMLElement, option: MoveMeOpt | undefined): Moving {
   element.dataset.moveItId = generateUID();
-  let state: RectState | undefined;
-  if (option && (state = option.initialState))
-    renderToCss(element, option.initialState);
+  let state: RectState | null;
+  if (option && (state = option.initialState || null))
+    renderToCss(element, option.initialState!);
   else {
     state = {
       x: ((element.parentElement?.clientLeft || 0) - element.clientLeft),
@@ -38,10 +33,13 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt | undefined): Mov
   }
 
   let selected = false;
+
   let mode: "drag" | "resize" | "rotate" | null = null;
   let data: any = null;
-  let startPos: { x: number, y: number };
-  let startState: RectState;
+
+  let startPos: Vec2 | null;
+  let lastPos: Vec2 | null;
+  let startState: RectState | null;
 
   function onPointerDown(event: PointerEvent) {
     if (!(event.target instanceof HTMLElement)) {
@@ -74,66 +72,78 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt | undefined): Mov
     }
 
     startState = state!;
-    startPos = event;
+    startPos = lastPos = event;
   }
 
-  function onPointerMove(event: PointerEvent) {
-    if (!state) return;
-    const delta = getPointerDelta(startPos, event);
+  function onPointerMove(event: {x: number, y: number, shiftKey: boolean}) {
+    if (!state || !startPos || !startState || !lastPos) return;
 
     switch (mode) {
       case "drag": {
-        state = moveRect(startState, delta.x, delta.y);
+        const diff = delta(startPos, event);
+        state = moveRect(startState, diff.x, diff.y);
         break;
       }
       case "resize": {
-        startPos = event;
         const designation: Exclude<DotDesignation, "rotate"> | Exclude<LineDesignation, "rotate"> = data;
-        const direction = normalize(rotate(designation.direction, state.rotation));
-
-        const keepRatio = designation.cardinal || event.shiftKey;
-
-        let sizeDelta: { x: number; y: number };
-
-        if (keepRatio) {
-          const dotVal = dot(direction, delta);
-          sizeDelta = scale(abs(direction), dotVal);
-        } else {
-          const absDelta = abs(delta)
-          sizeDelta = {
-            x: Math.sign(delta.x) === Math.sign(direction.x) ? absDelta.x : -absDelta.x,
-            y: Math.sign(delta.y) === Math.sign(direction.y) ? absDelta.y : -absDelta.y
-          };
-        }
-
-        state = resizeRect(state, sizeDelta.x, sizeDelta.y);
-
-        if (direction.x < 0) {
-          state = moveRect(state, -sizeDelta.x, 0);
-        }
-
-        if (direction.y < 0) {
-          state = moveRect(state, 0, -sizeDelta.y);
-        }
-
+        const movement = delta(lastPos, event);
+        state = handleResize(designation, state, event.shiftKey, movement);
         break;
       }
       case "rotate": {
+        const rect = element.getBoundingClientRect();
+
+        const pivot = {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2
+        };
+
+        const toStart = normalize(delta(pivot, startPos));
+        const toCur = normalize(delta(pivot, event));
+        const rad = Math.atan2(cross(toStart, toCur), dot(toStart, toCur));
+        state = rotateRect(state, startState.rotation + radToDeg(rad));
         break;
       }
     }
-    option?.onChange(state);
-    moving.state = state;
+    lastPos = event;
+    option?.onChange(state!);
+    moving.state = state!;
     render();
   }
 
   function onPointerUp() {
     mode = null;
+    startPos = null;
+    lastPos = null;
+    startState = null;
+  }
+
+  function onShiftRatio(event: KeyboardEvent) {
+    if (mode !== "resize") return;
+    if (!startState || !lastPos || !startPos) return;
+    if (!event.key.toLowerCase().includes("shift")) return;
+    if (data?.cardinal) return;
+    if (event.shiftKey) {
+      state = startState;
+    } else {
+      // now unpressing it, free ratio and recalc to cursor
+      console.log("unpress");
+      state = handleResize(data,
+        state,
+        event.shiftKey,
+        {x: lastPos.x - startPos.x, y: lastPos.y - startPos.y}
+      );
+    }
+    moving.state = state!;
+    option?.onChange(state!);
+    render();
   }
 
   window.addEventListener("pointerdown", onPointerDown);
   window.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", onPointerUp);
+  window.addEventListener("keydown", onShiftRatio);
+  window.addEventListener("keyup", onShiftRatio);
 
   function render() {
     renderToCss(element, state!);
@@ -149,6 +159,8 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt | undefined): Mov
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("keydown", onShiftRatio);
+      window.removeEventListener("keyup", onShiftRatio);
     },
     render,
     select: () => {
@@ -162,6 +174,48 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt | undefined): Mov
 
   let controls = updateControls(element, moving, false);
   return moving
+}
+
+function handleResize(designation: DotDesignation | LineDesignation,
+                      state: RectState | null,
+                      shiftKey: boolean,
+                      movement: Vec2): RectState | null {
+  if (!state) return null;
+
+  const horizontal = rotate({x: designation.direction.x, y: 0}, state.rotation);
+  const vertical = rotate({x: 0, y: designation.direction.y}, state.rotation);
+  let dx, dy;
+
+  if (designation.cardinal || shiftKey) {
+    const direction = normalize(rotate(designation.direction, state.rotation));
+    const dotVal = dot(direction, movement);
+    dx = Math.abs(designation.direction.x) * dotVal;
+    dy = Math.abs(designation.direction.y) * dotVal;
+  } else {
+    dx = dot(horizontal, movement);
+    dy = dot(vertical, movement);
+  }
+
+  state = resizeRect(state, dx, dy);
+
+  if (state.rotation === 0) {
+    if (designation.direction.x < 0) {
+      const adjust = scale(horizontal, dx);
+      state = moveRect(state, adjust.x, adjust.y);
+    }
+
+    if (designation.direction.y < 0) {
+      const adjust = scale(vertical, dy);
+      return moveRect(state, adjust.x, adjust.y);
+    }
+  } else {
+    // shift half as much in each direction
+    const h = scale(horizontal, dx / 2);
+    const v = scale(vertical, dy / 2);
+    return moveRect(state, h.x + v.x, h.y + v.y);
+  }
+
+  return null;
 }
 
 // Source - https://stackoverflow.com/a/6248722
@@ -178,7 +232,3 @@ function generateUID() {
   return firstPart + secondPart;
 }
 
-function getPointerDelta(start: PointerPos, end: PointerPos): PointerPos {
-  if (!start || !end) return {x: 0, y: 0};
-  return {x: end.x - start.x, y: end.y - start.y};
-}

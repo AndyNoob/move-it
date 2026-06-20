@@ -23,6 +23,9 @@ export function abs(vec: Vec2): Vec2 {
   return {x: Math.abs(vec.x), y: Math.abs(vec.y)};
 }
 
+export function cross(a: Vec2, b: Vec2): number {
+  return a.x * b.y - a.y * b.x;
+}
 /**
  * @param vec the vec
  * @param angleDeg in degrees, as the name suggests
@@ -36,4 +39,13 @@ export function rotate(vec: Vec2, angleDeg: number) {
 export interface Vec2 {
   x: number,
   y: number
+}
+
+export function delta(start: Vec2, end: Vec2): Vec2 {
+  if (!start || !end) return {x: 0, y: 0};
+  return {x: end.x - start.x, y: end.y - start.y};
+}
+
+export function normalizeDeg(deg: number) {
+  return ((deg % 360) + 360) % 360;
 }

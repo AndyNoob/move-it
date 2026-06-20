@@ -1,5 +1,6 @@
-import {getControlBox} from "../html/htmlUtil";
-import {Moving} from "../html/moveMe";
+import {getControlBox} from "./htmlUtil";
+import {Moving} from "./moveMe";
+import {normalizeDeg} from "../geometry/geometry";
 
 export interface Controls {
   container: HTMLElement,
@@ -152,11 +153,12 @@ function getLine(box: HTMLElement, target: string, designation: LineDesignation,
 
   el.dataset.moveItTarget = target;
   el.dataset.moveItDesignation = `${designation.name}`;
+  el.style.cursor = getResizeCursor(designation.name, moving.state.rotation);
   el.classList.contains("line") || el.classList.add("line");
 
-  // const state = moving.state;
   const targetEl = moving.element;
 
+  // noinspection FallThroughInSwitchStatementJS
   switch (designation.name) {
     case "bottom":
       el.style.transform = `translate(0, ${targetEl.offsetHeight}px)`
@@ -177,63 +179,6 @@ function getLine(box: HTMLElement, target: string, designation: LineDesignation,
       break;
   }
 
-  // const halfWidth = targetEl.offsetWidth / 2;
-  // const halfHeight = targetEl.offsetHeight / 2;
-  // const targetAngle = degToRad(state.rotation) + Math.PI;
-  //
-  // let {x, y} = state;
-  // let centerX = x + halfWidth;
-  // let centerY = y + halfHeight;
-  // let newX = centerX, newY = centerY;
-  //
-  // /*
-  //
-  //     tracking the location of the x's
-  //     o is the pivot of the rect
-  //
-  //     |------------x------------|
-  //     |                         |
-  //     x            o            |
-  //     |                         |
-  //     |-------------------------|
-  //
-  //
-  //  */
-  //
-  // switch (designation) {
-  //   case "top":
-  //   case "bottom":
-  //   case "rotate":
-  //     newX += halfHeight * Math.cos(targetAngle + Math.PI / 2) - halfWidth;
-  //     newY += halfHeight * Math.sin(targetAngle + Math.PI / 2);
-  //     break;
-  //   case "left":
-  //   case "right":
-  //     newX += halfWidth * Math.cos(targetAngle);
-  //     newY += halfWidth * Math.sin(targetAngle) - halfHeight;
-  //     break;
-  // }
-  //
-  // let dx = newX - x;
-  // let dy = newY - y;
-  //
-  // if (designation === "rotate") {
-  //   el.style.transform = `
-  //     translate(${state.x + (targetEl.offsetWidth - ROTATE_WIDTH) / 2}px, ${state.y}px)
-  //     translate(${dx}px, ${dy}px)
-  //     rotate(${state.rotation}deg)
-  //     translate(${halfWidth + ROTATE_WIDTH / 2}px, ${halfHeight}px)
-  //   `
-  // } else {
-  //   el.style.transform = `
-  //     translate(${state.x}px, ${state.y}px)
-  //     translate(${dx}px, ${dy}px)
-  //     rotate(${state.rotation}deg)
-  //   `;
-  //
-  //   if (designation === "right") el.style.transform += ` translate(${targetEl.offsetWidth}px, 0)`;
-  //   if (designation === "bottom") el.style.transform += ` translate(0, ${targetEl.offsetHeight}px)`;
-  // }
   return el;
 }
 
@@ -246,6 +191,7 @@ function getDot(box: HTMLElement, target: string, designation: DotDesignation, m
 
   el.style.width = `${DOT_SIZE}px`;
   el.style.height = `${DOT_SIZE}px`;
+  el.style.cursor = getResizeCursor(designation.name, moving.state.rotation);
 
   const targetEl = moving.element;
 
@@ -267,42 +213,47 @@ function getDot(box: HTMLElement, target: string, designation: DotDesignation, m
       break;
   }
 
-  // const state = moving.state;
-  // const targetEl = moving.element;
-  //
-  // const halfWidth = state.width / 2;
-  // const halfHeight = state.height / 2;
-  // // const diag = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
-  // const targetAngle = degToRad(state.rotation + 180);
-  //
-  // let dx = halfWidth + halfWidth * Math.cos(targetAngle);
-  // let dy = halfHeight + halfWidth * Math.sin(targetAngle);
-  // console.log(`designation ${designation} dx ${dx} dy ${dy}`);
-
-  // el.style.transform = `
-  //   translate(${state.x}px, ${state.y}px)
-  //   translate(${dx}px, ${dy}px)
-  //   rotate(${state.rotation}deg)
-  //   translate(${5 * Math.sin(degToRad(state.rotation / 2))}px, 0)
-  // `;
-
-  // switch (designation) {
-  //   case "topLeft":
-  //     el.style.transform += ` translate(0, -${halfHeight}px)`;
-  //     break;
-  //   case "topRight":
-  //     el.style.transform += ` translate(${targetEl.offsetWidth}px, -${halfHeight}px)`;
-  //     break;
-  //   case "bottomLeft":
-  //     el.style.transform += ` translate(0, ${halfHeight}px)`;
-  //     break;
-  //   case "bottomRight":
-  //     el.style.transform += ` translate(${targetEl.offsetWidth}px, ${halfHeight}px)`;
-  //     break;
-  //   case "rotate":
-  //     el.style.transform += ` translate(${targetEl.offsetWidth + ROTATE_WIDTH}px, 0)`;
-  //     break;
-  // }
-
   return el;
 }
+
+function getResizeCursor(
+  handle: string,
+  rotation: number
+) {
+  if (handle === "rotate") return "grab";
+
+  const cursorByHandle: any = {
+    topLeft: "nw-resize",
+    topRight: "ne-resize",
+    bottomLeft: "sw-resize",
+    bottomRight: "se-resize",
+    top: "row-resize",
+    bottom: "row-resize",
+    left: "col-resize",
+    right: "col-resize",
+  };
+
+  const baseAngles: any = {
+    topRight: 45,
+    topLeft: 135,
+    bottomLeft: 225,
+    bottomRight: 315,
+    right: 0,
+    top: 90,
+    left: 180,
+    bottom: 270,
+  };
+
+  if (!Object.keys(baseAngles).includes(handle)) return "move";
+
+  let angle = normalizeDeg((baseAngles as any)[handle] - rotation);
+  if (angle < 0) angle += 360;
+  const snapped = Math.round(angle / 45) * 45 % 360;
+
+  for (let key in baseAngles) {
+    if (baseAngles[key] === snapped) return cursorByHandle[key];
+  }
+
+  return "move";
+}
+
