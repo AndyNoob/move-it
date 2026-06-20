@@ -1,25 +1,24 @@
 import {RectState} from "../geometry/state";
 import {SnappingGrid, SnappingRotation} from "./moveMe";
 
-export function handleDragSnap(element: HTMLElement, state: RectState, shiftKey: boolean, grid: SnappingGrid) {
+export function handleDragSnap(element: HTMLElement, state: RectState, grid: SnappingGrid) {
   const halfWidth = element.offsetWidth / 2;
   const halfHeight = element.offsetHeight / 2;
   const pivot = {x: (state.x + halfWidth), y: (state.y + halfHeight)};
-  if (!shiftKey && grid) {
-    if (grid.horizontalY) {
-      for (let number of grid.horizontalY) {
-        if (Math.abs(number - pivot.y) < grid.threshold) {
-          state.y = number - halfHeight;
-          break;
-        }
+  if (!grid) return;
+  if (grid.horizontalY) {
+    for (let number of grid.horizontalY) {
+      if (Math.abs(number - pivot.y) < grid.threshold) {
+        state.y = number - halfHeight;
+        break;
       }
     }
-    if (grid.verticalX) {
-      for (let number of grid.verticalX) {
-        if (Math.abs(number - pivot.x) < grid.threshold) {
-          state.x = number - halfWidth;
-          break;
-        }
+  }
+  if (grid.verticalX) {
+    for (let number of grid.verticalX) {
+      if (Math.abs(number - pivot.x) < grid.threshold) {
+        state.x = number - halfWidth;
+        break;
       }
     }
   }

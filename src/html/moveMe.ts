@@ -44,6 +44,7 @@ export interface Moving {
   destroy: () => void,
   render: () => void,
   select: () => void,
+  checkBounds: () => void,
   updateControls: () => Controls,
 }
 
@@ -71,6 +72,56 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   let lastPos: Vec2 | null;
   let startState: RectState | null;
 
+  function onPointerMove(event: { x: number, y: number, shiftKey: boolean }) {
+    if (!state || !startPos || !startState || !lastPos) return;
+
+    const old = {...state};
+
+    switch (mode) {
+      case "drag": {
+        const diff = delta(startPos, event);
+        state = moveRect(startState, diff.x, diff.y);
+        const grid = option?.snapping?.grid;
+        if (grid && !event.shiftKey) handleDragSnap(element, state, grid);
+        break;
+      }
+      case "resize": {
+        const designation: Exclude<DotDesignation, "rotate"> | Exclude<LineDesignation, "rotate"> = data;
+        const movement = delta(lastPos, event);
+        state = handleResize(designation, state, event.shiftKey, movement);
+        break;
+      }
+      case "rotate": {
+        const pivot = getPivot(element);
+
+        const toStart = normalize(delta(pivot, startPos));
+        const toCur = normalize(delta(pivot, event));
+        const rad = Math.atan2(cross(toStart, toCur), dot(toStart, toCur));
+        let angle = startState.rotation + radToDeg(rad);
+
+        if (!event.shiftKey && option?.snapping && option.snapping.rotation) {
+          angle = handleRotateSnap(option.snapping.rotation, angle);
+        }
+
+        state = rotateRect(state, angle);
+        break;
+      }
+    }
+
+    if (!state) throw new Error("state is undef after processing pointer move");
+
+    const finalDiff = delta(old, state);
+    checkBounds(finalDiff.x, finalDiff.y);
+
+    lastPos = event;
+
+    if (option?.onChange)
+      option?.onChange(state);
+    moving.state = state;
+    render();
+  }
+
+  //<editor-fold desc="Listeners">
   function onPointerDown(event: PointerEvent) {
     if (!(event.target instanceof HTMLElement)) {
       selected = false;
@@ -103,48 +154,6 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
 
     startState = state!;
     startPos = lastPos = event;
-  }
-
-  function onPointerMove(event: {x: number, y: number, shiftKey: boolean}) {
-    if (!state || !startPos || !startState || !lastPos) return;
-
-    switch (mode) {
-      case "drag": {
-        const diff = delta(startPos, event);
-        state = moveRect(startState, diff.x, diff.y);
-
-        const grid = option?.snapping?.grid;
-        if (grid) handleDragSnap(element, state, event.shiftKey, grid);
-
-        break;
-      }
-      case "resize": {
-        const designation: Exclude<DotDesignation, "rotate"> | Exclude<LineDesignation, "rotate"> = data;
-        const movement = delta(lastPos, event);
-        state = handleResize(designation, state, event.shiftKey, movement);
-        break;
-      }
-      case "rotate": {
-        const pivot = getPivot(element);
-
-        const toStart = normalize(delta(pivot, startPos));
-        const toCur = normalize(delta(pivot, event));
-        const rad = Math.atan2(cross(toStart, toCur), dot(toStart, toCur));
-        let angle = startState.rotation + radToDeg(rad);
-
-        if (!event.shiftKey && option?.snapping && option.snapping.rotation) {
-          angle = handleRotateSnap(option.snapping.rotation, angle);
-        }
-
-        state = rotateRect(state, angle);
-        break;
-      }
-    }
-    lastPos = event;
-    if (option?.onChange)
-      option?.onChange(state!);
-    moving.state = state!;
-    render();
   }
 
   function onPointerUp() {
@@ -215,9 +224,47 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   window.addEventListener("keydown", keydown);
   window.addEventListener("keyup", onShiftRatio);
 
+  //</editor-fold>
+
   function render() {
     renderToCss(element, state!);
     controls = updateControls(element, moving, option, selected);
+  }
+
+  function checkBounds(dx = 0, dy = 0): boolean {
+    if (!state) return false;
+    let changed = false;
+    const clientRect = element.getBoundingClientRect();
+    const rect = {
+      left: clientRect.left,
+      right: clientRect.right,
+      top: clientRect.top,
+      bottom: clientRect.bottom,
+    };
+    const bounds = option.controlRoot.getBoundingClientRect();
+
+    rect.left += dx;
+    rect.right += dx;
+    rect.top += dy;
+    rect.bottom += dy;
+
+    if (rect.left < bounds.left) {
+      state = moveRect(state, bounds.left - rect.left, 0);
+      changed = true;
+    }
+    if (rect.right > bounds.right) {
+      state = moveRect(state, bounds.right - rect.right, 0);
+      changed = true;
+    }
+    if (rect.top < bounds.top) {
+      state = moveRect(state, 0, bounds.top - rect.top);
+      changed = true;
+    }
+    if (rect.bottom > bounds.bottom) {
+      state = moveRect(state, 0, bounds.bottom - rect.bottom);
+      changed = true;
+    }
+    return changed;
   }
 
   const moving: Moving = {
@@ -239,6 +286,14 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
     },
     updateControls: (select = false) => {
       return controls = updateControls(element, moving, option, selected = select);
+    },
+    checkBounds: () => {
+      if (checkBounds() && state) {
+        moving.state = state;
+        if (option.onChange)
+          option.onChange(state);
+        render();
+      }
     }
   };
 
