@@ -266,7 +266,8 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snap
         || controlBox.appendChild(document.createElement("div"));
       line.classList.contains(vertical ? "vert-grid" : "hori-grid")
       || line.classList.add(vertical ? "vert-grid" : "hori-grid");
-      line.style.left = `${val}px`;
+      !vertical || (line.style.left = `${val}px`);
+      vertical || (line.style.top = `${val}px`);
       line.dataset.moveItVal = `${val}`;
       line.dataset.moveItTarget = target;
       elements[val] = line;

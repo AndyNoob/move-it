@@ -89,14 +89,17 @@
 #CONTROL_ID .vert-grid {
   width: 1px;
   height: 100vh;
-  position: absolute;
-  background-color: var(--grid-color);
 }
 
 /*noinspection CssUnresolvedCustomProperty*/
 #CONTROL_ID .hori-grid {
-  width: 1px;
-  height: 100vh;
+  width: 100vw;
+  height: 1px;
+}
+
+#CONTROL_ID .hori-grid, #CONTROL_ID .vert-grid {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
   position: absolute;
+  /*noinspection CssUnresolvedCustomProperty*/
   background-color: var(--grid-color);
 }

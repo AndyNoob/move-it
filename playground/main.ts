@@ -23,7 +23,8 @@ w.moveMe = moveMe(el, {
     grid: {
       displayThreshold: 20,
       threshold: 5,
-      verticalX: [window.innerWidth / 2]
+      verticalX: [window.innerWidth / 2],
+      horizontalY: [window.innerHeight / 10 * 9]
     }
   },
   controlRoot: document.body
@@ -35,7 +36,7 @@ w.reset = (v: number) => {
   w.moveMe.render();
 }
 
-let i = 0;
+// let i = 0;
 
 // setInterval(() => {
 //   i = (i + 1) % 360;

@@ -11,7 +11,7 @@ import * as controlCss from "./control.css?raw";
 const STYLE_ID = "mGW3wTwrZ6";
 const CONTROLS_ID = "E4UKgq3cxN";
 const CONTROL_COL = "#44a9fe";
-const GRID_COL = "#e8e676";
+const GRID_COL = "rgba(64, 150, 255, 0.9)";
 
 export function getControlBox(): HTMLDivElement {
   const box: HTMLDivElement = document.querySelector(`#${CONTROLS_ID}`)
