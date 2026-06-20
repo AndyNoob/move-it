@@ -1,4 +1,4 @@
-#CONTROL_ID {
+.CONTROL_ID {
   position: relative;
   width: 100vw;
   height: 100vh;
@@ -6,27 +6,27 @@
   pointer-events: none;
 }
 
-#CONTROL_ID .container {
+.CONTROL_ID .container {
   position: absolute;
 }
 
 /*noinspection CssUnresolvedCustomProperty*/
-#CONTROL_ID .line {
+.CONTROL_ID .line {
   position: absolute;
   background-color: var(--control-color) !important;
   pointer-events: all;
   z-index: 100;
 }
 
-#CONTROL_ID .line[data-move-it-designation="top"], #CONTROL_ID .line[data-move-it-designation="bottom"] {
+.CONTROL_ID .line[data-move-it-designation="top"], .CONTROL_ID .line[data-move-it-designation="bottom"] {
   cursor: row-resize;
 }
 
-#CONTROL_ID .line[data-move-it-designation="left"], #CONTROL_ID .line[data-move-it-designation="right"] {
+.CONTROL_ID .line[data-move-it-designation="left"], .CONTROL_ID .line[data-move-it-designation="right"] {
   cursor: col-resize;
 }
 
-#CONTROL_ID .line::after {
+.CONTROL_ID .line::after {
   content: "";
   padding: 5px;
   position: absolute;
@@ -38,7 +38,7 @@
 }
 
 /*noinspection CssUnresolvedCustomProperty*/
-#CONTROL_ID .dot {
+.CONTROL_ID .dot {
   position: absolute;
   width: 5px;
   height: 5px;
@@ -49,7 +49,7 @@
   z-index: 120;
 }
 
-#CONTROL_ID .dot::after {
+.CONTROL_ID .dot::after {
   content: "";
   padding: 5px;
   position: absolute;
@@ -61,23 +61,23 @@
   z-index: 120;
 }
 
-#CONTROL_ID .dot[data-move-it-designation="topLeft"] {
+.CONTROL_ID .dot[data-move-it-designation="topLeft"] {
   cursor: nw-resize;
 }
 
-#CONTROL_ID .dot[data-move-it-designation="topRight"] {
+.CONTROL_ID .dot[data-move-it-designation="topRight"] {
   cursor: ne-resize;
 }
 
-#CONTROL_ID .dot[data-move-it-designation="bottomLeft"] {
+.CONTROL_ID .dot[data-move-it-designation="bottomLeft"] {
   cursor: sw-resize;
 }
 
-#CONTROL_ID .dot[data-move-it-designation="bottomRight"] {
+.CONTROL_ID .dot[data-move-it-designation="bottomRight"] {
   cursor: se-resize;
 }
 
-#CONTROL_ID .dot[data-move-it-designation="rotate"] {
+.CONTROL_ID .dot[data-move-it-designation="rotate"] {
   cursor: grab;
 }
 
@@ -86,18 +86,18 @@
 }
 
 /*noinspection CssUnresolvedCustomProperty*/
-#CONTROL_ID .vert-grid {
+.CONTROL_ID .vert-grid {
   width: 1px;
   height: 100vh;
 }
 
 /*noinspection CssUnresolvedCustomProperty*/
-#CONTROL_ID .hori-grid {
+.CONTROL_ID .hori-grid {
   width: 100vw;
   height: 1px;
 }
 
-#CONTROL_ID .hori-grid, #CONTROL_ID .vert-grid {
+.CONTROL_ID .hori-grid, .CONTROL_ID .vert-grid {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
   position: absolute;
   /*noinspection CssUnresolvedCustomProperty*/

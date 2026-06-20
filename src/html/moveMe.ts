@@ -8,6 +8,10 @@ export interface MoveMeOpt {
   initialState?: RectState,
   snapping?: SnappingOpt,
   onChange?: (next: RectState) => void,
+  /**
+   * this should ideally be the same parent as the target element ({@linkcode HTMLElement.parentElement}),
+   * otherwise there might be weird issues with coordinates
+   */
   controlRoot: HTMLElement
 }
 
@@ -22,7 +26,7 @@ export interface SnappingGrid {
    */
   threshold: number,
   /**
-   * number of pixels away to display the nearest grid/guide line
+   * number of pixels away to display the nearest grid/guideline
    */
   displayThreshold: number,
   verticalX?: number[],
@@ -213,7 +217,7 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
 
   function render() {
     renderToCss(element, state!);
-    controls = updateControls(element, moving, option?.snapping, selected);
+    controls = updateControls(element, moving, option, selected);
   }
 
   const moving: Moving = {
@@ -231,14 +235,14 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
     render,
     select: () => {
       selected = true;
-      controls = updateControls(element, moving, option?.snapping);
+      controls = updateControls(element, moving, option);
     },
     updateControls: (select = false) => {
-      return controls = updateControls(element, moving, option?.snapping, selected = select);
+      return controls = updateControls(element, moving, option, selected = select);
     }
   };
 
-  let controls = updateControls(element, moving, option?.snapping, false);
+  let controls = updateControls(element, moving, option, false);
   return moving
 }
 

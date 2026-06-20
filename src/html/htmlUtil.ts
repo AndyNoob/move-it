@@ -1,25 +1,19 @@
 import {RectState} from "../geometry/state";
 import * as controlCss from "./control.css?raw";
 
-// type Declaration = [property: string, value: string, important?: boolean];
-// type Block = [
-//   selector: string,
-//   ...declaration: Declaration[]
-// ]
-// type CSSRules = Block[];
-
 const STYLE_ID = "mGW3wTwrZ6";
 const CONTROLS_ID = "E4UKgq3cxN";
 const CONTROL_COL = "#44a9fe";
 const GRID_COL = "rgba(64, 150, 255, 0.9)";
 
-export function getControlBox(): HTMLDivElement {
-  const box: HTMLDivElement = document.querySelector(`#${CONTROLS_ID}`)
-    || document.body.appendChild(document.createElement("div"));
-  box.id = CONTROLS_ID;
+export function getControlBox(root: HTMLElement = document.body): HTMLDivElement {
+  const box: HTMLDivElement = root.querySelector(`.${CONTROLS_ID}`)
+    || root.appendChild(document.createElement("div"));
+  box.classList.contains(CONTROLS_ID) || box.classList.add(CONTROLS_ID);
   box.style.setProperty("--control-color", CONTROL_COL);
   box.style.setProperty("--grid-color", GRID_COL);
-  appendStylesheetRules((controlCss.default as string).replace(/CONTROL_ID/gm, CONTROLS_ID), "control-box");
+  const style = (controlCss.default as string).replace(/CONTROL_ID/gm, CONTROLS_ID);
+  appendStylesheetRules(style, "control-box");
   return box;
 }
 
@@ -42,21 +36,6 @@ export function appendStylesheetRules(str: string, id?: string) {
   if (!styleSheet) {
     throw new Error("could not retrieve stylesheet in appendStylesheetRules");
   }
-
-  // for (let block of rules) {
-  //   let selector = block[0];
-  //   let decStr = block.slice(1)
-  //     .map(dec => `  ${dec[0]}: ${dec[1]}${dec[2] ? "!important" : ""};`)
-  //     .join("\n");
-  //
-  //   // Insert CSS Rule
-  //   const rule = `${selector} {\n${decStr}\n}`;
-  //   styleSheet.insertRule(
-  //     rule,
-  //     styleSheet.cssRules.length,
-  //   );
-  //   console.log(styleSheet.cssRules)
-  // }
 
   styleEl.textContent += str;
 }

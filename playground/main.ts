@@ -27,7 +27,7 @@ w.moveMe = moveMe(el, {
       horizontalY: [window.innerHeight / 10 * 9]
     }
   },
-  controlRoot: document.body
+  controlRoot: el.parentElement!
 });
 
 

@@ -1,5 +1,5 @@
 import {getControlBox, getDistanceToLine} from "./htmlUtil";
-import {Moving, SnappingOpt} from "./moveMe";
+import {MoveMeOpt, Moving, SnappingOpt} from "./moveMe";
 import {normalizeDeg} from "../geometry/geometry";
 import {RectState} from "../geometry/state";
 
@@ -106,9 +106,9 @@ const LINE_SIZE = 1;
 const DOT_SIZE = 5;
 const ROTATE_WIDTH = 20;
 
-export function updateControls(el: HTMLElement, moving: Moving, snapping: SnappingOpt | undefined, selected = true): Controls {
+export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeOpt, selected = true): Controls {
   const target = el.dataset.moveItId!;
-  const box = getControlBox();
+  const box = getControlBox(options.controlRoot);
   const container: HTMLElement =
     document.querySelector(`.container[data-move-it-target=${target}]`) ||
     box.appendChild(document.createElement("div"));
@@ -132,7 +132,7 @@ export function updateControls(el: HTMLElement, moving: Moving, snapping: Snappi
       bottomRight: getDot(container, target, dotDesignations.bottomRight, moving),
       rotate: getDot(container, target, dotDesignations.rotate, moving)
     },
-    guides: getGuides(box, target, moving, snapping),
+    guides: getGuides(box, target, moving, options.snapping),
     destroy: () => {
       container.replaceChildren();
       container.remove();
