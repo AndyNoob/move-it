@@ -2,6 +2,7 @@ import {moveRect, RectState, resizeRect, rotateRect} from "../geometry/state";
 import {getPivot, getRotation, renderToCss} from "./htmlUtil";
 import {Controls, DotDesignation, LineDesignation, updateControls} from "./controls";
 import {cross, delta, dot, normalize, radToDeg, rotate, scale, Vec2} from "../geometry/geometry";
+import {handleDragSnap, handleRotateSnap} from "./snapping";
 
 export interface MoveMeOpt {
   initialState?: RectState,
@@ -11,22 +12,26 @@ export interface MoveMeOpt {
 }
 
 export interface SnappingOpt {
-  rotation?: {
-    anglesDeg: number[],
-    threshold: number
-  },
-  grid?: {
-    /**
-     * number of pixels away to snap the element
-     */
-    threshold: number,
-    /**
-     * number of pixels away to display the nearest grid/guide line
-     */
-    displayThreshold: number,
-    verticalX?: number[],
-    horizontalY?: number[]
-  }
+  rotation?: SnappingRotation,
+  grid?: SnappingGrid
+}
+
+export interface SnappingGrid {
+  /**
+   * number of pixels away to snap the element
+   */
+  threshold: number,
+  /**
+   * number of pixels away to display the nearest grid/guide line
+   */
+  displayThreshold: number,
+  verticalX?: number[],
+  horizontalY?: number[]
+}
+
+export interface SnappingRotation {
+  anglesDeg: number[],
+  threshold: number
 }
 
 export interface Moving {
@@ -105,27 +110,8 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
         state = moveRect(startState, diff.x, diff.y);
 
         const grid = option?.snapping?.grid;
-        const halfWidth = element.offsetWidth / 2;
-        const halfHeight = element.offsetHeight / 2;
-        const pivot = {x: (state.x + halfWidth), y: (state.y + halfHeight)};
-        if (!event.shiftKey && grid) {
-          if (grid.horizontalY) {
-            for (let number of grid.horizontalY) {
-              if (Math.abs(number - pivot.y) < grid.threshold) {
-                state.y = number - halfHeight;
-                break;
-              }
-            }
-          }
-          if (grid.verticalX) {
-            for (let number of grid.verticalX) {
-              if (Math.abs(number - pivot.x) < grid.threshold) {
-                state.x = number - halfWidth;
-                break;
-              }
-            }
-          }
-        }
+        if (grid) handleDragSnap(element, state, event.shiftKey, grid);
+
         break;
       }
       case "resize": {
@@ -143,13 +129,7 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
         let angle = startState.rotation + radToDeg(rad);
 
         if (!event.shiftKey && option?.snapping && option.snapping.rotation) {
-          const rotSnap = option.snapping.rotation;
-          for (let number of rotSnap.anglesDeg) {
-            if (Math.abs(angle - number) < rotSnap.threshold) {
-              angle = number;
-              break;
-            }
-          }
+          angle = handleRotateSnap(option.snapping.rotation, angle);
         }
 
         state = rotateRect(state, angle);
@@ -179,7 +159,6 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
       state = startState;
     } else {
       // now unpressing it, free ratio and recalc to cursor
-      console.log("unpress");
       state = handleResize(data,
         state,
         event.shiftKey,
@@ -192,10 +171,44 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
     render();
   }
 
+  function onArrowKeys(event: KeyboardEvent) {
+    if (!state) return;
+    if (mode != null) return;
+    let key = event.key.toLowerCase();
+    if (!key.startsWith("arrow")) return;
+    key = key.slice(5);
+    const d = {x: 0, y: 0};
+    const step =
+      event.shiftKey ? 10 : (event.altKey ? 0.5 : 1);
+    switch (key) {
+      case "left":
+        d.x = -step;
+        break;
+      case "right":
+        d.x = step;
+        break;
+      case "up":
+        d.y = -step;
+        break;
+      case "down":
+        d.y = step;
+        break;
+    }
+    moving.state = state = moveRect(state, d.x, d.y);
+    if (option.onChange)
+      option.onChange(state);
+    render();
+  }
+
+  function keydown(event: KeyboardEvent) {
+    onShiftRatio(event);
+    onArrowKeys(event);
+  }
+
   window.addEventListener("pointerdown", onPointerDown);
   window.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", onPointerUp);
-  window.addEventListener("keydown", onShiftRatio);
+  window.addEventListener("keydown", keydown);
   window.addEventListener("keyup", onShiftRatio);
 
   function render() {
@@ -212,7 +225,7 @@ export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("keydown", onShiftRatio);
+      window.removeEventListener("keydown", keydown);
       window.removeEventListener("keyup", onShiftRatio);
     },
     render,
