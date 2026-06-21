@@ -132,7 +132,7 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
       bottomRight: getDot(container, target, dotDesignations.bottomRight, moving),
       rotate: getDot(container, target, dotDesignations.rotate, moving)
     },
-    guides: getGuides(box, target, moving, options.snapping),
+    guides: getGuides(box, target, moving, options),
     destroy: () => {
       container.replaceChildren();
       container.remove();
@@ -175,7 +175,6 @@ function getLine(box: HTMLElement, target: string, designation: LineDesignation,
 
   const targetEl = moving.element;
 
-  // noinspection FallThroughInSwitchStatementJS
   switch (designation.name) {
     case "bottom":
       el.style.transform = `translate(0, ${targetEl.offsetHeight}px)`
@@ -235,10 +234,11 @@ function getDot(box: HTMLElement, target: string, designation: DotDesignation, m
   return el;
 }
 
-function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snapping: SnappingOpt | undefined): {
+function getGuides(controlBox: HTMLElement, target: string, moving: Moving, options: MoveMeOpt): {
   vertical: HTMLElement[];
   horizontal: HTMLElement[]
 } {
+  const snapping: SnappingOpt | undefined = options.snapping;
   const grid = snapping?.grid;
   if (!snapping || !grid) return {vertical: [], horizontal: []};
   const allGuides: { vertical: Record<string, HTMLElement>, horizontal: Record<string, HTMLElement> } =
@@ -274,8 +274,14 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snap
         || controlBox.appendChild(document.createElement("div"));
       const className = vertical ? "vert-grid" : "hori-grid";
       if (!line.classList.contains(className)) line.classList.add(className);
-      if (vertical) line.style.left = `${val}px`;
-      else line.style.top = `${val}px`;
+      if (vertical) {
+        line.style.left = `${val}px`;
+        line.style.height = `${options.controlRoot.offsetHeight}px`;
+      }
+      else {
+        line.style.top = `${val}px`;
+        line.style.width = `${options.controlRoot.offsetWidth}px`;
+      }
       line.style.visibility = "visible";
       line.dataset.moveItVal = `${val}`;
       line.dataset.moveItTarget = target;
