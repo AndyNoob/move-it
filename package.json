@@ -15,10 +15,10 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "build:playground": "vite build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "lint": "eslint src",
-    "test": "vitest",
-    "test:run": "vitest run"
+    "test": "vitest run",
+    "prepack": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "files": [
     "dist",
@@ -33,9 +33,14 @@
   "license": "MIT",
   "type": "module",
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "eslint": "^9.39.4",
+    "globals": "^17.6.0",
+    "jiti": "^2.7.0",
     "jsdom": "^27.0.1",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1",
     "vite": "^8.0.16",
     "vitest": "^3.2.6"
   }

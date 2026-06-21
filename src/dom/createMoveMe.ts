@@ -69,7 +69,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   let selected = false;
 
   let mode: "drag" | "resize" | "rotate" | null = null;
-  let data: any = null;
+  let designation: Exclude<DotDesignation, "rotate"> | Exclude<LineDesignation, "rotate"> | null = null;
 
   let startPos: Vec2 | null;
   let lastPos: Vec2 | null;
@@ -89,7 +89,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
         break;
       }
       case "resize": {
-        const designation: Exclude<DotDesignation, "rotate"> | Exclude<LineDesignation, "rotate"> = data;
+        if (!designation) throw Error("designation is null (resize) in pointer move")
         state = handleResize(designation, state, event.shiftKey, movement);
         break;
       }
@@ -149,7 +149,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
     } else {
       if (dotClick?.name === "rotate") mode = "rotate";
       else {
-        data = dotClick || lineClick;
+        designation = (dotClick || lineClick)!;
         mode = "resize";
       }
     }
@@ -167,14 +167,14 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
 
   function onShiftRatio(event: KeyboardEvent) {
     if (mode !== "resize") return;
-    if (!startState || !lastPos || !startPos) return;
+    if (!startState || !lastPos || !startPos || !designation) return;
     if (!event.key.toLowerCase().includes("shift")) return;
-    if (data?.cardinal) return;
+    if (designation?.cardinal) return;
     if (event.shiftKey) {
       state = startState;
     } else {
       // now unpressing it, free ratio and recalc to cursor
-      state = handleResize(data,
+      state = handleResize(designation!,
         state,
         event.shiftKey,
         {x: lastPos.x - startPos.x, y: lastPos.y - startPos.y}
@@ -363,10 +363,10 @@ function handleResize(designation: DotDesignation | LineDesignation,
 function generateUID() {
   // I generate the UID from two parts here
   // to ensure the random number provide enough bits.
-  let firstPart: any = (Math.random() * 46656) | 0;
-  let secondPart: any = (Math.random() * 46656) | 0;
-  firstPart = ("000" + firstPart.toString(36)).slice(-3);
-  secondPart = ("000" + secondPart.toString(36)).slice(-3);
-  return firstPart + secondPart;
+  const firstPart: number = (Math.random() * 46656) | 0;
+  const secondPart: number = (Math.random() * 46656) | 0;
+  const firstPartB = ("000" + firstPart.toString(36)).slice(-3);
+  const secondPartB = ("000" + secondPart.toString(36)).slice(-3);
+  return firstPartB + secondPartB;
 }
 

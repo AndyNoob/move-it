@@ -9,7 +9,7 @@ const GRID_COL = "rgba(64, 150, 255, 0.9)";
 export function getControlBox(root: HTMLElement = document.body): HTMLDivElement {
   const box: HTMLDivElement = root.querySelector(`.${CONTROLS_ID}`)
     || root.appendChild(document.createElement("div"));
-  box.classList.contains(CONTROLS_ID) || box.classList.add(CONTROLS_ID);
+  if (!box.classList.contains(CONTROLS_ID)) box.classList.add(CONTROLS_ID);
   box.style.setProperty("--control-color", CONTROL_COL);
   box.style.setProperty("--grid-color", GRID_COL);
   const style = (controlCss.default as string).replace(/CONTROL_ID/gm, CONTROLS_ID);
@@ -54,8 +54,8 @@ export function renderToCss(el: HTMLElement, state: RectState) {
  * @see https://stackoverflow.com/questions/19574171/how-to-get-css-transform-rotation-value-in-degrees-with-javascript
  */
 export function getRotation(el: HTMLElement) {
-  let st = window.getComputedStyle(el, null);
-  let tr = st.getPropertyValue("-webkit-transform") ||
+  const st = window.getComputedStyle(el, null);
+  const tr = st.getPropertyValue("-webkit-transform") ||
     st.getPropertyValue("-moz-transform") ||
     st.getPropertyValue("-ms-transform") ||
     st.getPropertyValue("-o-transform") ||
@@ -67,9 +67,9 @@ export function getRotation(el: HTMLElement) {
   if (tr !== "none") {
     let v: string = tr.split('(')[1]!;
     v = v.split(')')[0]!;
-    let values = v.split(',');
-    let a = Number(values[0]);
-    let b = Number(values[1]);
+    const values = v.split(',');
+    const a = Number(values[0]);
+    const b = Number(values[1]);
 
     let radians = Math.atan2(b, a);
     if (radians < 0) {

@@ -155,7 +155,7 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
 
 function updateContainer(container: HTMLElement, selected: boolean, target: string, el: HTMLElement, state: RectState) {
   container.style.visibility = selected ? "visible" : "hidden";
-  container.classList.contains("container") || container.classList.add("container");
+  if (!container.classList.contains("container")) container.classList.add("container");
   container.dataset.moveItTarget = target;
   container.style.transformOrigin = `${el.offsetWidth / 2}px ${el.offsetHeight / 2}px`;
   container.style.transform = `
@@ -171,7 +171,7 @@ function getLine(box: HTMLElement, target: string, designation: LineDesignation,
   el.dataset.moveItTarget = target;
   el.dataset.moveItDesignation = `${designation.name}`;
   el.style.cursor = getResizeCursor(designation.name, moving.state.rotation);
-  el.classList.contains("line") || el.classList.add("line");
+  if (!el.classList.contains("line")) el.classList.add("line");
 
   const targetEl = moving.element;
 
@@ -179,12 +179,14 @@ function getLine(box: HTMLElement, target: string, designation: LineDesignation,
   switch (designation.name) {
     case "bottom":
       el.style.transform = `translate(0, ${targetEl.offsetHeight}px)`
+    // falls through
     case "top":
       el.style.width = `${targetEl.offsetWidth}px`;
       el.style.height = `${LINE_SIZE}px`;
       break;
     case "right":
       el.style.transform = `translate(${targetEl.offsetWidth}px, 0)`
+    // falls through
     case "left":
       el.style.width = `${LINE_SIZE}px`;
       el.style.height = `${targetEl.offsetHeight}px`;
@@ -204,7 +206,7 @@ function getDot(box: HTMLElement, target: string, designation: DotDesignation, m
     || box.appendChild(document.createElement("div"))) as HTMLElement;
   el.dataset.moveItTarget = target;
   el.dataset.moveItDesignation = `${designation.name}`;
-  el.classList.contains("dot") || el.classList.add("dot");
+  if (el.classList.contains("dot")) el.classList.add("dot");
 
   el.style.width = `${DOT_SIZE}px`;
   el.style.height = `${DOT_SIZE}px`;
@@ -240,11 +242,11 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snap
   const grid = snapping?.grid;
   if (!snapping || !grid) return {vertical: [], horizontal: []};
   const allGuides: { vertical: Record<string, HTMLElement>, horizontal: Record<string, HTMLElement> } =
-    {vertical: {}, horizontal: {}} as any;
+    {vertical: {}, horizontal: {}};
   const allLines = controlBox.querySelectorAll(
     `.vert-grid[data-move-it-target="${target}"], .hori-grid[data-move-it-target="${target}"]`
   );
-  for (let element of allLines as NodeListOf<HTMLElement>) {
+  for (const element of allLines as NodeListOf<HTMLElement>) {
     if (element.dataset.moveItVal == null) {
       element.remove();
       continue;
@@ -270,10 +272,10 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snap
     } else {
       const line = existing
         || controlBox.appendChild(document.createElement("div"));
-      line.classList.contains(vertical ? "vert-grid" : "hori-grid")
-      || line.classList.add(vertical ? "vert-grid" : "hori-grid");
-      !vertical || (line.style.left = `${val}px`);
-      vertical || (line.style.top = `${val}px`);
+      const className = vertical ? "vert-grid" : "hori-grid";
+      if (!line.classList.contains(className)) line.classList.add(className);
+      if (vertical) line.style.left = `${val}px`;
+      else line.style.top = `${val}px`;
       line.style.visibility = "visible";
       line.dataset.moveItVal = `${val}`;
       line.dataset.moveItTarget = target;
@@ -282,11 +284,11 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snap
   }
 
   if (grid.verticalX)
-    for (let vert of grid.verticalX) {
+    for (const vert of grid.verticalX) {
       makeSureItExists(vert, true);
     }
   if (grid.horizontalY)
-    for (let hori of grid.horizontalY) {
+    for (const hori of grid.horizontalY) {
       makeSureItExists(hori, false);
     }
   return {horizontal: Object.values(allGuides.horizontal), vertical: Object.values(allGuides.vertical)};
@@ -298,7 +300,7 @@ function getResizeCursor(
 ) {
   if (handle === "rotate") return "grab";
 
-  const cursorByHandle: any = {
+  const cursorByHandle: Record<string, string> = {
     topLeft: "nw-resize",
     topRight: "ne-resize",
     bottomLeft: "sw-resize",
@@ -309,7 +311,7 @@ function getResizeCursor(
     right: "col-resize",
   };
 
-  const baseAngles: any = {
+  const baseAngles: Record<string, number> = {
     topRight: 45,
     topLeft: 135,
     bottomLeft: 225,
@@ -322,12 +324,12 @@ function getResizeCursor(
 
   if (!Object.keys(baseAngles).includes(handle)) return "move";
 
-  let angle = normalizeDeg((baseAngles as any)[handle] - rotation);
+  let angle = normalizeDeg(baseAngles[handle]! - rotation);
   if (angle < 0) angle += 360;
   const snapped = Math.round(angle / 45) * 45 % 360;
 
-  for (let key in baseAngles) {
-    if (baseAngles[key] === snapped) return cursorByHandle[key];
+  for (const key in baseAngles) {
+    if (baseAngles[key] === snapped) return cursorByHandle[key]!;
   }
 
   return "move";

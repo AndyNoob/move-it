@@ -7,7 +7,7 @@ export function handleDragSnap(element: HTMLElement, state: RectState, grid: Sna
   const pivot = {x: (state.x + halfWidth), y: (state.y + halfHeight)};
   if (!grid) return;
   if (grid.horizontalY) {
-    for (let number of grid.horizontalY) {
+    for (const number of grid.horizontalY) {
       if (Math.abs(number - pivot.y) < grid.threshold) {
         state.y = number - halfHeight;
         break;
@@ -15,7 +15,7 @@ export function handleDragSnap(element: HTMLElement, state: RectState, grid: Sna
     }
   }
   if (grid.verticalX) {
-    for (let number of grid.verticalX) {
+    for (const number of grid.verticalX) {
       if (Math.abs(number - pivot.x) < grid.threshold) {
         state.x = number - halfWidth;
         break;
@@ -25,7 +25,7 @@ export function handleDragSnap(element: HTMLElement, state: RectState, grid: Sna
 }
 
 export function handleRotateSnap(rotSnap: SnappingRotation, angle: number) {
-  for (let number of rotSnap.anglesDeg) {
+  for (const number of rotSnap.anglesDeg) {
     if (Math.abs(angle - number) < rotSnap.threshold) {
       angle = number;
       break;
