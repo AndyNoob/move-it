@@ -4,8 +4,9 @@
      "outDir": "./dist",
 
     // Environment Settings
-    "module": "node18",
-    "target": "es2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES2020",
     "types": [],
 
     // Other Outputs

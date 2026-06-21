@@ -16,17 +16,27 @@
     "build": "tsup src/index.ts --format esm,cjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "build:playground": "vite build",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
-  "files": ["dist", "README.md", "LICENSE"],
-  "sideEffects": ["*.css"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
   "keywords": [],
   "author": "AndyNoob",
   "license": "MIT",
   "type": "module",
   "devDependencies": {
+    "jsdom": "^27.0.1",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vitest": "^3.2.6"
   }
 }

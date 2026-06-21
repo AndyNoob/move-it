@@ -110,7 +110,7 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
   const target = el.dataset.moveItId!;
   const box = getControlBox(options.controlRoot);
   const container: HTMLElement =
-    document.querySelector(`.container[data-move-it-target=${target}]`) ||
+    document.querySelector(`.container[data-move-it-target="${target}"]`) ||
     box.appendChild(document.createElement("div"));
   const state = moving.state;
 
@@ -140,13 +140,13 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
     getDotDesignation: (checking) => {
       const key = checking.dataset.moveItDesignation;
       if (!(key && key in dotDesignations)) return null;
-      return checking.matches(`.dot[data-move-it-target=${target}]`) ?
+      return checking.matches(`.dot[data-move-it-target="${target}"]`) ?
         dotDesignations[key as keyof typeof dotDesignations] : null;
     },
     getLineDesignation: (checking) => {
       const key = checking.dataset.moveItDesignation;
       if (!(key && key in lineDesignations)) return null;
-      if (!checking.matches(`.line[data-move-it-target=${target}]`)) return null;
+      if (!checking.matches(`.line[data-move-it-target="${target}"]`)) return null;
       if (key === "rotate") return null;
       return lineDesignations[key as keyof typeof lineDesignations] as Exclude<LineDesignation, "rotate">;
     }
@@ -165,7 +165,7 @@ function updateContainer(container: HTMLElement, selected: boolean, target: stri
 }
 
 function getLine(box: HTMLElement, target: string, designation: LineDesignation, moving: Moving) {
-  const el = (box.querySelector(`.line[data-move-it-target=${target}][data-move-it-designation="${designation.name}"]`)
+  const el = (box.querySelector(`.line[data-move-it-target="${target}"][data-move-it-designation="${designation.name}"]`)
     || box.appendChild(document.createElement("div"))) as HTMLElement;
 
   el.dataset.moveItTarget = target;
@@ -200,7 +200,7 @@ function getLine(box: HTMLElement, target: string, designation: LineDesignation,
 }
 
 function getDot(box: HTMLElement, target: string, designation: DotDesignation, moving: Moving) {
-  const el = (box.querySelector(`.dot[data-move-it-target=${target}][data-move-it-designation="${designation.name}"]`)
+  const el = (box.querySelector(`.dot[data-move-it-target="${target}"][data-move-it-designation="${designation.name}"]`)
     || box.appendChild(document.createElement("div"))) as HTMLElement;
   el.dataset.moveItTarget = target;
   el.dataset.moveItDesignation = `${designation.name}`;
@@ -241,9 +241,10 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snap
   if (!snapping || !grid) return {vertical: [], horizontal: []};
   const allGuides: { vertical: Record<string, HTMLElement>, horizontal: Record<string, HTMLElement> } =
     {vertical: {}, horizontal: {}} as any;
-  for (let element of controlBox.querySelectorAll(
-    `.vert-grid[data-move-it-target=${target}], .hori-grid[data-move-it-target=${target}]`
-  ) as NodeListOf<HTMLElement>) {
+  const allLines = controlBox.querySelectorAll(
+    `.vert-grid[data-move-it-target="${target}"], .hori-grid[data-move-it-target="${target}"]`
+  );
+  for (let element of allLines as NodeListOf<HTMLElement>) {
     if (element.dataset.moveItVal == null) {
       element.remove();
       continue;
@@ -258,6 +259,7 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, snap
       } else allGuides.horizontal[element.dataset.moveItVal] = element;
     }
   }
+
   const rect = moving.element.getBoundingClientRect();
 
   function makeSureItExists(val: number, vertical: boolean) {

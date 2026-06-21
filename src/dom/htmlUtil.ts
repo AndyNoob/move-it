@@ -2,7 +2,7 @@ import type {RectState} from "../geometry/state.js";
 import * as controlCss from "./control.css?raw";
 
 const STYLE_ID = "mGW3wTwrZ6";
-const CONTROLS_ID = "E4UKgq3cxN";
+export const CONTROLS_ID = "E4UKgq3cxN";
 const CONTROL_COL = "#44a9fe";
 const GRID_COL = "rgba(64, 150, 255, 0.9)";
 
