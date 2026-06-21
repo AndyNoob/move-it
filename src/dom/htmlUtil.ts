@@ -1,5 +1,5 @@
 import type {RectState} from "../geometry/state";
-import * as controlCss from "./control.css?raw";
+import cssText from "./control.css?inline";
 
 const STYLE_ID = "mGW3wTwrZ6";
 export const CONTROLS_ID = "E4UKgq3cxN";
@@ -12,7 +12,7 @@ export function getControlBox(root: HTMLElement = document.body): HTMLDivElement
   if (!box.classList.contains(CONTROLS_ID)) box.classList.add(CONTROLS_ID);
   box.style.setProperty("--control-color", CONTROL_COL);
   box.style.setProperty("--grid-color", GRID_COL);
-  const style = (controlCss.default as string).replace(/CONTROL_ID/gm, CONTROLS_ID);
+  const style = (cssText as string).replace(/CONTROL_ID/gm, CONTROLS_ID);
   appendStylesheetRules(style, "control-box");
   return box;
 }

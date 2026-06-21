@@ -10,11 +10,13 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    }
+    },
+    "./control.css": "./dist/control.css"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "build": "tsup && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "build:playground": "vite build",
+    "dev:playground": "vite",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "lint": "eslint src",
     "test": "vitest run",
@@ -34,6 +36,7 @@
   "type": "module",
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@types/node": "^26.0.0",
     "eslint": "^9.39.4",
     "globals": "^17.6.0",
     "jiti": "^2.7.0",
