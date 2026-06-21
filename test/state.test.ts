@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { moveRect, rotateRect } from "../src/geometry/state.js";
+import { moveRect, rotateRect } from "../src/geometry/state";
 
 describe("state", () => {
   const rect = {

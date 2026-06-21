@@ -1,6 +1,6 @@
 import { describe, expect, it, afterEach } from "vitest";
-import {createMoveMe} from "../src/index.js";
-import {CONTROLS_ID} from "../src/dom/htmlUtil.js";
+import {createMoveMe} from "../src";
+import {CONTROLS_ID} from "../src/dom/htmlUtil";
 
 describe("createMoveMe", () => {
   afterEach(() => {

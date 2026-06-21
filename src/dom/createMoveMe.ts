@@ -1,11 +1,11 @@
-import type {RectState} from "../geometry/state.js"
-import {moveRect, resizeRect, rotateRect} from "../geometry/state.js";
-import {getPivot, getRotation, renderToCss} from "./htmlUtil.js";
-import type {Controls, DotDesignation, LineDesignation} from "./controls.js";
-import {updateControls} from "./controls.js";
-import type {Vec2} from "../geometry/geometry.js";
-import {cross, delta, dot, normalize, radToDeg, rotate, scale} from "../geometry/geometry.js";
-import {handleDragSnap, handleRotateSnap} from "./snapping.js";
+import type {RectState} from "../geometry/state"
+import {moveRect, resizeRect, rotateRect} from "../geometry/state";
+import {getPivot, getRotation, renderToCss} from "./htmlUtil";
+import type {Controls, DotDesignation, LineDesignation} from "./controls";
+import {updateControls} from "./controls";
+import type {Vec2} from "../geometry/geometry";
+import {cross, delta, dot, normalize, radToDeg, rotate, scale} from "../geometry/geometry";
+import {handleDragSnap, handleRotateSnap} from "./snapping";
 
 export interface MoveMeOpt {
   initialState?: RectState,

@@ -1,6 +1,6 @@
 import { expect, it, describe, afterEach } from "vitest";
-import {handleDragSnap, handleRotateSnap} from "../src/dom/snapping.js";
-import {createMoveMe, type SnappingOpt} from "../src/index.js";
+import {handleDragSnap, handleRotateSnap} from "../src/dom/snapping";
+import {createMoveMe, type SnappingOpt} from "../src";
 
 describe("snapping", () => {
   afterEach(() => {

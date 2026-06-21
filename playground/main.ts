@@ -1,6 +1,6 @@
-import {createMoveMe} from "../src/index.js";
-import {getRotation} from "../src/dom/htmlUtil.js";
-import type {RectState} from "../src/index.js";
+import {createMoveMe} from "../src";
+import {getRotation} from "../src/dom/htmlUtil";
+import type {RectState} from "../src";
 
 const el = document.getElementById('rect')!;
 let w = (window as any);

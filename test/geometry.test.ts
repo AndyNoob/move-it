@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cross, degToRad, dot, normalize, radToDeg } from "../src/geometry/geometry.js";
+import { cross, degToRad, dot, normalize, radToDeg } from "../src/geometry/geometry";
 
 describe("geometry", () => {
   it("converts between degrees and radians", () => {

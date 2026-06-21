@@ -1,4 +1,4 @@
-import {normalizeDeg} from "./geometry.js";
+import {normalizeDeg} from "./geometry";
 
 export interface RectState {
   x: number,

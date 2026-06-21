@@ -1,7 +1,7 @@
-import {getControlBox, getDistanceToLine} from "./htmlUtil.js";
-import type {MoveMeOpt, Moving, SnappingOpt} from "./createMoveMe.js";
-import {normalizeDeg} from "../geometry/geometry.js";
-import type {RectState} from "../geometry/state.js";
+import {getControlBox, getDistanceToLine} from "./htmlUtil";
+import type {MoveMeOpt, Moving, SnappingOpt} from "./createMoveMe";
+import {normalizeDeg} from "../geometry/geometry";
+import type {RectState} from "../geometry/state";
 
 //<editor-fold defaultstate="collapsed" desc="Control interface">
 export interface Controls {

@@ -1,4 +1,4 @@
-import type {RectState} from "../geometry/state.js";
+import type {RectState} from "../geometry/state";
 import * as controlCss from "./control.css?raw";
 
 const STYLE_ID = "mGW3wTwrZ6";
