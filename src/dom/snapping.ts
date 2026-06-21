@@ -1,5 +1,5 @@
-import {RectState} from "../geometry/state";
-import {SnappingGrid, SnappingRotation} from "./moveMe";
+import type {RectState} from "../geometry/state.js";
+import type {SnappingGrid, SnappingRotation} from "./createMoveMe.js";
 
 export function handleDragSnap(element: HTMLElement, state: RectState, grid: SnappingGrid) {
   const halfWidth = element.offsetWidth / 2;

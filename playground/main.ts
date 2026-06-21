@@ -1,18 +1,19 @@
-import {moveMe} from "../src/html/moveMe";
-import {getRotation} from "../src/html/htmlUtil";
+import {createMoveMe} from "../src/index.js";
+import {getRotation} from "../src/dom/htmlUtil.js";
+import type {RectState} from "../src/index.js";
 
 const el = document.getElementById('rect')!;
 let w = (window as any);
 
-w.moveMe = moveMe(el, {
+w.moveMe = createMoveMe(el, {
   initialState: {
     x: 200,
     y: 200,
     width: 200,
     height: 120,
-    rotation: 0
+    rotation: 75
   },
-  onChange(next) {
+  onChange(next: RectState) {
     localStorage.setItem('rect', JSON.stringify(next));
   },
   snapping: {
@@ -35,13 +36,6 @@ w.reset = (v: number) => {
   w.moveMe.state.rotation = v || 0;
   w.moveMe.render();
 }
-
-// let i = 0;
-
-// setInterval(() => {
-//   i = (i + 1) % 360;
-//   window.reset(i);
-// }, 50);
 
 console.log(getRotation(el));
 

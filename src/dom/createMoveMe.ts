@@ -1,8 +1,11 @@
-import {moveRect, RectState, resizeRect, rotateRect} from "../geometry/state";
-import {getPivot, getRotation, renderToCss} from "./htmlUtil";
-import {Controls, DotDesignation, LineDesignation, updateControls} from "./controls";
-import {cross, delta, dot, normalize, radToDeg, rotate, scale, Vec2} from "../geometry/geometry";
-import {handleDragSnap, handleRotateSnap} from "./snapping";
+import type {RectState} from "../geometry/state.js"
+import {moveRect, resizeRect, rotateRect} from "../geometry/state.js";
+import {getPivot, getRotation, renderToCss} from "./htmlUtil.js";
+import type {Controls, DotDesignation, LineDesignation} from "./controls.js";
+import {updateControls} from "./controls.js";
+import type {Vec2} from "../geometry/geometry.js";
+import {cross, delta, dot, normalize, radToDeg, rotate, scale} from "../geometry/geometry.js";
+import {handleDragSnap, handleRotateSnap} from "./snapping.js";
 
 export interface MoveMeOpt {
   initialState?: RectState,
@@ -48,7 +51,7 @@ export interface Moving {
   updateControls: () => Controls,
 }
 
-export function moveMe(element: HTMLElement, option: MoveMeOpt): Moving {
+export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   element.dataset.moveItId = generateUID();
   let state: RectState | null;
   if (option && (state = option.initialState || null))
@@ -321,6 +324,7 @@ function handleResize(designation: DotDesignation | LineDesignation,
     dy = dot(vertical, movement);
   }
 
+  const old = {...state};
   state = resizeRect(state, dx, dy);
 
   if (state.rotation === 0) {
@@ -328,19 +332,29 @@ function handleResize(designation: DotDesignation | LineDesignation,
       const adjust = scale(horizontal, dx);
       state = moveRect(state, adjust.x, adjust.y);
     }
+    console.log(state);
 
     if (designation.direction.y < 0) {
       const adjust = scale(vertical, dy);
-      return moveRect(state, adjust.x, adjust.y);
+      state = moveRect(state, adjust.x, adjust.y);
     }
+
+    return state;
   } else {
     // shift half as much in each direction
     const h = scale(horizontal, dx / 2);
     const v = scale(vertical, dy / 2);
+
+    {
+      // adjust for pivot point change
+      const dx = state.width - old.width;
+      const dy = state.height - old.height;
+      state.x -= dx / 2;
+      state.y -= dy / 2;
+    }
+
     return moveRect(state, h.x + v.x, h.y + v.y);
   }
-
-  return null;
 }
 
 // Source - https://stackoverflow.com/a/6248722

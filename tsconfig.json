@@ -1,19 +1,35 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "strict": true,
+     "rootDir": "./src",
+     "outDir": "./dist",
+
+    // Environment Settings
+    "module": "node18",
+    "target": "es2020",
+    "types": [],
+
+    // Other Outputs
+    "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
-    "emitDeclarationOnly": false,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
+
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Style Options
+    // "noImplicitReturns": true,
+    // "noImplicitOverride": true,
+     "noUnusedLocals": true,
+     "noUnusedParameters": true,
+    // "noFallthroughCasesInSwitch": true,
+    // "noPropertyAccessFromIndexSignature": true,
+
+    "strict": true,
+    "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
-    "outDir": "dist",
-    "plugins": [{ "name": "typescript-plugin-css-modules" }]
-  },
-  "include": ["src", "playground"]
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+  }
 }

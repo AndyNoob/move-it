@@ -1,4 +1,4 @@
-import {normalizeDeg} from "./geometry";
+import {normalizeDeg} from "./geometry.js";
 
 export interface RectState {
   x: number,
@@ -28,19 +28,11 @@ export function resizeRect(
   dx: number,
   dy: number
 ): RectState {
-  const newState = {
+  return {
     ...start,
     width: Math.max(20, start.width + dx),
     height: Math.max(20, start.height + dy),
   };
-  if (newState.rotation !== 0) {
-    // adjust for pivot point change
-    const dx = newState.width - start.width;
-    const dy = newState.height - start.height;
-    newState.x -= dx / 2;
-    newState.y -= dy / 2;
-  }
-  return newState;
 }
 
 export function rotateRect(

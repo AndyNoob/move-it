@@ -1,4 +1,4 @@
-import {RectState} from "../geometry/state";
+import type {RectState} from "../geometry/state.js";
 import * as controlCss from "./control.css?raw";
 
 const STYLE_ID = "mGW3wTwrZ6";
@@ -65,9 +65,9 @@ export function getRotation(el: HTMLElement) {
   let angle: number;
 
   if (tr !== "none") {
-    let values: string | string[] = tr.split('(')[1];
-    values = values.split(')')[0];
-    values = values.split(',');
+    let v: string = tr.split('(')[1]!;
+    v = v.split(')')[0]!;
+    let values = v.split(',');
     let a = Number(values[0]);
     let b = Number(values[1]);
 

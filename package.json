@@ -1,7 +1,7 @@
 {
   "name": "move-it",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "DOM rectangle transform controls",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,9 +13,13 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
-    "build:playground": "vite build"
+    "build": "tsup src/index.ts --format esm,cjs && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "build:playground": "vite playground",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
   },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": ["*.css"],
   "keywords": [],
   "author": "AndyNoob",
   "license": "MIT",
