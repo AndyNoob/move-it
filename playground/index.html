@@ -1,6 +1,7 @@
 
 <div id="container">
-    <div id="rect">HEY THERE YOU'RE ROCKSTAR</div>
+    <div id="rect">Hey now, you're an all star</div>
+    <div id="rect2">Get your game on, go play</div>
 </div>
 <script type="module" src="./main.ts"></script>
 
@@ -10,13 +11,14 @@
     height: 100vh;
   }
 
-  #rect {
+  #rect, #rect2 {
     position: absolute;
     width: 100px;
     height: 100px;
     background: rgba(80, 120, 255, 0.25);
     border: 1px solid #333;
     touch-action: none;
+    text-align: center;
   }
 
   #rect::after {
