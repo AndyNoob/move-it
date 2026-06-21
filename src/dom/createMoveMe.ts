@@ -79,18 +79,17 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
     if (!state || !startPos || !startState || !lastPos) return;
 
     const old = {...state};
+    const movement = delta(lastPos, event);
 
     switch (mode) {
       case "drag": {
-        const diff = delta(startPos, event);
-        state = moveRect(startState, diff.x, diff.y);
+        state = moveRect(state, movement.x, movement.y);
         const grid = option?.snapping?.grid;
         if (grid && !event.shiftKey) handleDragSnap(element, state, grid);
         break;
       }
       case "resize": {
         const designation: Exclude<DotDesignation, "rotate"> | Exclude<LineDesignation, "rotate"> = data;
-        const movement = delta(lastPos, event);
         state = handleResize(designation, state, event.shiftKey, movement);
         break;
       }
