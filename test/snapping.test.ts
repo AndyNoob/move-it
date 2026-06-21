@@ -14,7 +14,7 @@ describe("snapping", () => {
     const snapping: SnappingOpt = {
       grid: {
         threshold: 5,
-        displayThreshold: 101,
+        displayThreshold: 200,
         verticalX: [100],
       },
     };
@@ -26,7 +26,8 @@ describe("snapping", () => {
       snapping,
     });
 
-    instance.render();
+    instance.select();
+
     const controls = instance.updateControls();
 
     handleDragSnap(el, instance.state, snapping.grid!);
