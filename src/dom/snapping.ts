@@ -1,5 +1,6 @@
 import type {RectState} from "../geometry/state";
 import type {SnappingGrid, SnappingRotation} from "./createMoveMe";
+import {normalizeDeg} from "../geometry/geometry";
 
 export function handleDragSnap(element: HTMLElement, state: RectState, grid: SnappingGrid) {
   const halfWidth = element.offsetWidth / 2;
@@ -25,6 +26,7 @@ export function handleDragSnap(element: HTMLElement, state: RectState, grid: Sna
 }
 
 export function handleRotateSnap(rotSnap: SnappingRotation, angle: number) {
+  angle = normalizeDeg(angle);
   for (const number of rotSnap.anglesDeg) {
     if (Math.abs(angle - number) < rotSnap.threshold) {
       angle = number;
