@@ -206,7 +206,7 @@ function getDot(box: HTMLElement, target: string, designation: DotDesignation, m
     || box.appendChild(document.createElement("div"))) as HTMLElement;
   el.dataset.moveItTarget = target;
   el.dataset.moveItDesignation = `${designation.name}`;
-  if (el.classList.contains("dot")) el.classList.add("dot");
+  if (!el.classList.contains("dot")) el.classList.add("dot");
 
   el.style.width = `${DOT_SIZE}px`;
   el.style.height = `${DOT_SIZE}px`;
