@@ -47,6 +47,7 @@ export interface Moving {
   destroy: () => void,
   render: () => void,
   select: () => void,
+  isSelected: () => boolean,
   checkBounds: () => void,
   updateControls: () => Controls,
 }
@@ -296,7 +297,8 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
           option.onChange(state);
         render();
       }
-    }
+    },
+    isSelected: () => selected
   };
 
   let controls = updateControls(element, moving, option, false);

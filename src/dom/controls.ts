@@ -267,7 +267,7 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, opti
   function makeSureItExists(val: number, vertical: boolean) {
     const elements = vertical ? allGuides.vertical : allGuides.horizontal;
     const existing = elements[val];
-    if (getDistanceToLine(rect, val, !vertical) > snapping!.grid!.displayThreshold) {
+    if (!moving.isSelected() || getDistanceToLine(rect, val, !vertical) > snapping!.grid!.displayThreshold) {
       if (existing) existing.style.visibility = "hidden";
     } else {
       const line = existing
