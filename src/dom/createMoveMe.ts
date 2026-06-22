@@ -333,7 +333,6 @@ function handleResize(designation: DotDesignation | LineDesignation,
       const adjust = scale(horizontal, dx);
       state = moveRect(state, adjust.x, adjust.y);
     }
-    console.log(state);
 
     if (designation.direction.y < 0) {
       const adjust = scale(vertical, dy);
