@@ -1,42 +1,51 @@
+<!DOCTYPE html>
+<head>
+    <style>
+      body {
+        margin: 0;
+        height: 100vh;
+      }
 
-<div id="container">
-    <div id="rect">Hey now, you're an all star</div>
-    <div id="rect2">Get your game on, go play</div>
-</div>
-<script type="module" src="./main.ts"></script>
+      #rect, #rect2 {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background: rgba(80, 120, 255, 0.25);
+        border: 1px solid #333;
+        touch-action: none;
+        text-align: center;
+      }
 
-<style>
-  body {
-    margin: 0;
-    height: 100vh;
-  }
+      #rect2 {
+        border: 0;
+      }
 
-  #rect, #rect2 {
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    background: rgba(80, 120, 255, 0.25);
-    border: 1px solid #333;
-    touch-action: none;
-    text-align: center;
-  }
+      #rect::after {
+        content: "";
+        width: 5px;
+        height: 5px;
+        display: block;
+        background-color: red;
+        border-radius: 50%;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
 
-  #rect::after {
-    content: "";
-    width: 5px;
-    height: 5px;
-    display: block;
-    background-color: red;
-    border-radius: 50%;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-
-  #container {
-    width: 800px;
-    height: 800px;
-    background-color: rgb(127 221 255 / 0.36);
-  }
-</style>
+      #container {
+        width: 800px;
+        height: 800px;
+        background-color: rgb(127 221 255 / 0.36);
+      }
+    </style>
+    <title>1+1=3</title>
+</head>
+<body>
+    <div id="container">
+        <div id="rect">Hey now, you're an all star</div>
+        <div id="rect2">Get your game on, go play</div>
+        <div style="height: 40px; width: 40px; background-color: black; position: absolute" id="move-me"></div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+</body>

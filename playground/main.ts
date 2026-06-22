@@ -50,6 +50,10 @@ w.moveMe2 = createMoveMe(el1, {
   controlRoot
 });
 
+createMoveMe(document.querySelector("#move-me")!, {
+  controlRoot: controlRoot
+})
+
 
 w.reset = (v: number) => {
   w.moveMe.state.rotation = v || 0;

@@ -212,22 +212,22 @@ function getDot(box: HTMLElement, target: string, designation: DotDesignation, m
   el.style.cursor = getResizeCursor(designation.name, moving.state.rotation);
 
   const targetEl = moving.element;
+  const sizing = getComputedStyle(targetEl).boxSizing;
+  const lineOffset = sizing === "border-box" ? LINE_SIZE / 2 : -LINE_SIZE /2;
+  el.style.transform = `translate(${-DOT_SIZE / 2}px, ${-DOT_SIZE / 2}px)`;
 
   switch (designation.name) {
-    case "topLeft":
-      el.style.transform = `translate(${-DOT_SIZE / 2}px, ${-DOT_SIZE / 2}px)`;
-      break;
     case "topRight":
-      el.style.transform = `translate(${targetEl.offsetWidth - DOT_SIZE / 2 - LINE_SIZE}px, ${-DOT_SIZE / 2}px)`;
+      el.style.transform += ` translate(${targetEl.offsetWidth + lineOffset}px, 0)`;
       break;
     case "bottomLeft":
-      el.style.transform = `translate(${-DOT_SIZE / 2}px, ${targetEl.offsetHeight - DOT_SIZE / 2 - LINE_SIZE}px)`;
+      el.style.transform += ` translate(0, ${targetEl.offsetHeight + lineOffset}px)`;
       break;
     case "bottomRight":
-      el.style.transform = `translate(${targetEl.offsetWidth - DOT_SIZE / 2 - LINE_SIZE}px, ${targetEl.offsetHeight - DOT_SIZE / 2 - LINE_SIZE}px)`;
+      el.style.transform += ` translate(${targetEl.offsetWidth + lineOffset}px, ${targetEl.offsetHeight + lineOffset}px)`;
       break;
     case "rotate":
-      el.style.transform = `translate(${targetEl.offsetWidth + ROTATE_WIDTH - DOT_SIZE / 2}px, ${targetEl.offsetHeight / 2 - DOT_SIZE / 2 - LINE_SIZE / 2}px)`;
+      el.style.transform += ` translate(${targetEl.offsetWidth + ROTATE_WIDTH}px, ${targetEl.offsetHeight / 2 + lineOffset}px)`;
       break;
   }
 
