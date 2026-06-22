@@ -46,6 +46,10 @@ export function delta(start: Vec2, end: Vec2): Vec2 {
   return {x: end.x - start.x, y: end.y - start.y};
 }
 
+export function add(a: Vec2, b: Vec2): Vec2 {
+  return {x: a.x + b.x, y: a.y + b.y};
+}
+
 export function normalizeDeg(deg: number) {
   return ((deg % 360) + 360) % 360;
 }
