@@ -1,5 +1,5 @@
 import type {RectState} from "./state";
-import {add, dot, rotate, scale, type Vec2} from "./geometry";
+import {add, delta, dot, rotate, scale, type Vec2} from "./geometry";
 
 // browser's up vector, y is negative :)
 const UP: Vec2 = {x: 0, y: -1};
@@ -15,7 +15,20 @@ interface Range {
   max: number
 }
 
-export default function findOverlap(a: RectState, b: RectState): Vec2 | null {
+/*
+
+Separating Axis Theorem
+===>  two arbitrarily rotated boxes DOESN'T overlap if there is not an axis at which their projected "shadows"
+      (in practice dot product min/max range along the axis) overlap.
+
+however, to actually prevent objects from being stuck, you also have to calculate the quantity at which box A is
+stuck in box B. in the simplest case, we do so by checking the overlap area of the shadows (min/max ranges).
+by calculating the width of the overlap area, we can scale the direction (normalized vector) of the axis using the width
+and apply that to one of the boxes.
+
+ */
+
+export function findOverlap(a: RectState, b: RectState, debugLog = false): Vec2 | null {
   const ab = getBasis(a);
   const bb = getBasis(b);
   const axes: Vec2[] = [
@@ -31,12 +44,16 @@ export default function findOverlap(a: RectState, b: RectState): Vec2 | null {
     axes.push(bb.up);
   }
 
+  if (debugLog) console.log("start overlap check", {axes, ab, bb});
+
   let sAxis: Vec2 | null = null;
   let amt: number | null = null;
 
   for (const axis of axes) {
-    const rangeA = project(a, ab, axis);
-    const rangeB = project(b, bb, axis);
+    const rangeA = project(a, ab, axis, debugLog);
+    const rangeB = project(b, bb, axis, debugLog);
+
+    if (debugLog) console.log("axis check", {axis, rangeA, rangeB});
 
     const checkA = {
       min: inRange(rangeA.min, rangeB),
@@ -46,6 +63,8 @@ export default function findOverlap(a: RectState, b: RectState): Vec2 | null {
       min: inRange(rangeB.min, rangeA),
       max: inRange(rangeB.max, rangeA),
     }
+
+    if (debugLog) console.log("check a & b", {checkA, checkB});
 
     // definitely does not overlap or completely contain
     if (!checkA.min && !checkA.max && !checkB.min && !checkB.max) return null;
@@ -64,9 +83,12 @@ export default function findOverlap(a: RectState, b: RectState): Vec2 | null {
       let val = Math.abs(leftShiftAmt) < Math.abs(rightShiftAmt) ? leftShiftAmt : rightShiftAmt;
       val += (inner.max - inner.min);
 
+      if (debugLog) console.log("containment", val);
+
       if (amt == null || Math.abs(val) < Math.abs(amt)) {
         sAxis = axis;
         amt = val + (inner.max - inner.min);
+        if (debugLog) console.log("mtv updated", {sAxis, amt});
       }
     } else {
       // incomplete overlap of the two boxes on this axis
@@ -82,9 +104,11 @@ export default function findOverlap(a: RectState, b: RectState): Vec2 | null {
       } else {
         val = rangeB.min - rangeA.max;
       }
+      if (debugLog) console.log("incomplete overlap", val)
       if (amt == null || Math.abs(val) < Math.abs(amt)) {
         sAxis = axis;
         amt = val;
+        if (debugLog) console.log("mtv updated", {sAxis, amt});
       }
     }
   }
@@ -101,18 +125,22 @@ function getBasis(r: RectState): Basis {
   }
 }
 
-function project(r: RectState, basis: Basis, axis: Vec2): Range {
-  const topLeft: Vec2 = r;
-  const topRight = add(topLeft, scale(basis.right, r.width));
+function project(r: RectState, basis: Basis, axis: Vec2, debugLog: boolean): Range {
+  const halfWidth = r.width / 2;
+  const halfHeight = r.height / 2;
+  const pivot = {x: r.x + halfWidth, y: r.y + halfHeight};
 
-  const heightShift = scale(basis.up, -r.height);
+  const hWRight = scale(basis.right, halfWidth);
+  const hHUp = scale(basis.up, halfHeight);
 
   const pts: Vec2[] = [
-    topLeft, // top left
-    topRight,
-    add(topLeft, heightShift), // bottom left
-    add(topRight, heightShift), // bottom right
+    delta(hWRight, add(hHUp, pivot)),   // top left
+    add(hWRight, add(hHUp, pivot)),     // top right
+    delta(hWRight, delta(hHUp, pivot)), // bottom left
+    add(hWRight, delta(hHUp, pivot)),   // bottom right
   ];
+
+  if (debugLog) console.log("projection", {axis, pts});
 
   let min = Number.POSITIVE_INFINITY;
   let max = Number.NEGATIVE_INFINITY;

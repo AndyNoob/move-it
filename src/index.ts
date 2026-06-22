@@ -1,4 +1,5 @@
-export { createMoveMe } from "./dom/createMoveMe";
+export { createMoveMe, computeState } from "./dom/createMoveMe";
+export { findOverlap } from "./geometry/findOverlap";
 
 export type {
   MoveMeOpt,

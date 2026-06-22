@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import findOverlap from "../src/geometry/findOverlap";
+import { findOverlap } from "../src";
 import type { RectState } from "../src";
 import type { Vec2 } from "../src/geometry/geometry";
 
@@ -79,7 +79,7 @@ describe("findOverlap", () => {
     const a = rect({ x: 0, y: 0, width: 100, height: 100, rotation: 45 });
     const b = rect({ x: 50, y: 0, width: 100, height: 100, rotation: -15 });
 
-    const mtv = findOverlap(a, b);
+    const mtv = findOverlap(a, b, true);
 
     expect(mtv).not.toBeNull();
     expect(length(mtv!)).toBeGreaterThan(0);
@@ -89,7 +89,7 @@ describe("findOverlap", () => {
     const a = rect({ x: 0, y: 0, width: 100, height: 100, rotation: 45 });
     const b = rect({ x: 250, y: 0, width: 100, height: 100, rotation: -15 });
 
-    expect(findOverlap(a, b)).toBeNull();
+    expect(findOverlap(a, b, true)).toBeNull();
   });
 
   it("returns a very small MTV for a very small overlap", () => {
@@ -106,7 +106,7 @@ describe("findOverlap", () => {
     const a = rect({ x: 0, y: 0, width: 100, height: 100, rotation: 33 });
     const b = rect({ x: 80, y: 20, width: 100, height: 100, rotation: 77 });
 
-    const mtv = findOverlap(a, b);
+    const mtv = findOverlap(a, b, true);
 
     expect(mtv).not.toBeNull();
     expect(Number.isNaN(mtv!.x)).toBe(false);

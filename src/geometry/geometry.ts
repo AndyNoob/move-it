@@ -41,6 +41,9 @@ export interface Vec2 {
   y: number
 }
 
+/**
+ * The arithmetic is `end - start`
+ */
 export function delta(start: Vec2, end: Vec2): Vec2 {
   if (!start || !end) return {x: 0, y: 0};
   return {x: end.x - start.x, y: end.y - start.y};

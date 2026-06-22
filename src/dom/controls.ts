@@ -112,7 +112,7 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
   const container: HTMLElement =
     document.querySelector(`.container[data-move-it-target="${target}"]`) ||
     box.appendChild(document.createElement("div"));
-  const state = moving.state;
+  const state = moving.getState();
 
   updateContainer(container, selected, target, el, state);
 
@@ -170,7 +170,7 @@ function getLine(box: HTMLElement, target: string, designation: LineDesignation,
 
   el.dataset.moveItTarget = target;
   el.dataset.moveItDesignation = `${designation.name}`;
-  el.style.cursor = getResizeCursor(designation.name, moving.state.rotation);
+  el.style.cursor = getResizeCursor(designation.name, moving.getState().rotation);
   if (!el.classList.contains("line")) el.classList.add("line");
 
   const targetEl = moving.element;
@@ -209,7 +209,7 @@ function getDot(box: HTMLElement, target: string, designation: DotDesignation, m
 
   el.style.width = `${DOT_SIZE}px`;
   el.style.height = `${DOT_SIZE}px`;
-  el.style.cursor = getResizeCursor(designation.name, moving.state.rotation);
+  el.style.cursor = getResizeCursor(designation.name, moving.getState().rotation);
 
   const targetEl = moving.element;
   const sizing = getComputedStyle(targetEl).boxSizing;

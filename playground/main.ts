@@ -1,6 +1,5 @@
-import {createMoveMe} from "../src";
+import {createMoveMe, findOverlap} from "../src";
 import {getRotation} from "../src/dom/htmlUtil";
-import type {RectState} from "../src";
 
 const el = document.getElementById('rect')!;
 const el1 = document.getElementById('rect2')!;
@@ -28,9 +27,6 @@ w.moveMe1 = createMoveMe(el, {
     height: 120,
     rotation: 75
   },
-  onChange(next: RectState) {
-    localStorage.setItem('rect', JSON.stringify(next));
-  },
   snapping,
   controlRoot
 });
@@ -43,22 +39,23 @@ w.moveMe2 = createMoveMe(el1, {
     height: 120,
     rotation: 299
   },
-  onChange(next: RectState) {
-    localStorage.setItem('rect', JSON.stringify(next));
-  },
   snapping,
   controlRoot
 });
 
+w.moveMe1.addCollisionSibling(w.moveMe2);
+w.moveMe2.addCollisionSibling(w.moveMe1);
+
 createMoveMe(document.querySelector("#move-me")!, {
   controlRoot: controlRoot
-})
-
+});
 
 w.reset = (v: number) => {
   w.moveMe.state.rotation = v || 0;
   w.moveMe.render();
 }
+
+w.findOverlap = findOverlap;
 
 console.log(getRotation(el));
 

@@ -30,9 +30,9 @@ describe("snapping", () => {
 
     const controls = instance.updateControls();
 
-    handleDragSnap(el, instance.state, snapping.grid!);
+    handleDragSnap(el, instance.getState(), snapping.grid!);
 
-    expect(instance.state.x).toBe(100);
+    expect(instance.getState().x).toBe(100);
     expect(controls.guides.vertical[0]).toBeDefined();
     expect(controls.guides.vertical[0]?.dataset.moveItVal).toBe("100");
   });

@@ -6,6 +6,7 @@ import {updateControls} from "./controls";
 import type {Vec2} from "../geometry/geometry";
 import {cross, delta, dot, normalize, radToDeg, rotate, scale} from "../geometry/geometry";
 import {handleDragSnap, handleRotateSnap} from "./snapping";
+import {findOverlap} from "../geometry/findOverlap";
 
 export interface MoveMeOpt {
   initialState?: RectState,
@@ -43,29 +44,44 @@ export interface SnappingRotation {
 
 export interface Moving {
   element: HTMLElement,
-  state: RectState,
+  id: string,
+  getState: () => RectState,
   destroy: () => void,
   render: () => void,
   select: () => void,
   isSelected: () => boolean,
   checkBounds: () => void,
   updateControls: () => Controls,
+  getCollisionSiblings: () => Moving[],
+  /**
+   * You need to do this for both instances, the behavior is not mirrored by default
+   * For example, say you have `instanceA` and `instanceB`, you need to run both
+   * `instanceA.addCollisionSibling(instanceB)` and `instanceB.addCollisionSibling(instanceA)`
+   * for both instances to collide with the other.
+   */
+  addCollisionSibling: (sibling: Moving) => void,
+  removeCollisionSibling: (sibling: Moving) => void,
+}
+
+export function computeState(element: HTMLElement) {
+  return {
+    x: ((element.parentElement?.clientLeft || 0) - element.clientLeft),
+    y: ((element.parentElement?.clientTop || 0) - element.clientTop),
+    width: element.clientWidth,
+    height: element.offsetHeight,
+    rotation: getRotation(element),
+  }
 }
 
 export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
-  element.dataset.moveItId = generateUID();
-  let state: RectState | null;
-  if (option && (state = option.initialState || null))
-    renderToCss(element, option.initialState!);
-  else {
-    state = {
-      x: ((element.parentElement?.clientLeft || 0) - element.clientLeft),
-      y: ((element.parentElement?.clientTop || 0) - element.clientTop),
-      width: element.clientWidth,
-      height: element.offsetHeight,
-      rotation: getRotation(element),
-    }
-  }
+  const id = generateUID();
+  element.dataset.moveItId = id;
+
+  const siblings: Moving[] = [];
+  let state: RectState = option && option.initialState ? option.initialState : computeState(element)
+
+  if (option.initialState)
+    renderToCss(element, option.initialState);
 
   let selected = false;
 
@@ -120,11 +136,10 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
 
     if (option?.onChange)
       option?.onChange(state);
-    moving.state = state;
     render();
   }
 
-  //<editor-fold desc="Listeners">
+  //<editor-fold desc="Listeners" defaultstate="collapsed">
   function onPointerDown(event: PointerEvent) {
     if (!(event.target instanceof HTMLElement)) {
       selected = false;
@@ -181,7 +196,6 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
         {x: lastPos.x - startPos.x, y: lastPos.y - startPos.y}
       );
     }
-    moving.state = state!;
     if (option?.onChange)
       option?.onChange(state!);
     render();
@@ -210,7 +224,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
         d.y = step;
         break;
     }
-    moving.state = state = moveRect(state, d.x, d.y);
+    state = moveRect(state, d.x, d.y);
     if (option.onChange)
       option.onChange(state);
     render();
@@ -267,12 +281,21 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
       state = moveRect(state, 0, bounds.bottom - rect.bottom);
       changed = true;
     }
+
+    for (const sibling of siblings) {
+      const shift = findOverlap(state, sibling.getState());
+      if (!shift) continue;
+      state = moveRect(state, shift.x, shift.y);
+      changed = true;
+    }
+
     return changed;
   }
 
   const moving: Moving = {
     element,
-    state,
+    id,
+    getState: () => state!,
     destroy: () => {
       controls.destroy();
       delete element.dataset.moveItId;
@@ -292,13 +315,15 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
     },
     checkBounds: () => {
       if (checkBounds() && state) {
-        moving.state = state;
         if (option.onChange)
           option.onChange(state);
         render();
       }
     },
-    isSelected: () => selected
+    isSelected: () => selected,
+    getCollisionSiblings: () => siblings,
+    removeCollisionSibling: (sibling: Moving) => siblings.filter(m => m.id === sibling.id),
+    addCollisionSibling: (sibling: Moving) => siblings.push(sibling),
   };
 
   let controls = updateControls(element, moving, option, false);
@@ -306,11 +331,9 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
 }
 
 function handleResize(designation: DotDesignation | LineDesignation,
-                      state: RectState | null,
+                      state: RectState,
                       shiftKey: boolean,
-                      movement: Vec2): RectState | null {
-  if (!state) return null;
-
+                      movement: Vec2): RectState {
   const horizontal = rotate({x: designation.direction.x, y: 0}, state.rotation);
   const vertical = rotate({x: 0, y: designation.direction.y}, state.rotation);
   let dx, dy;
