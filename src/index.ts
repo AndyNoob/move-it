@@ -4,6 +4,7 @@ export { findOverlap } from "./geometry/findOverlap";
 export type {
   MoveMeOpt,
   SnappingOpt,
+  Moving
 } from "./dom/createMoveMe";
 
 export type {

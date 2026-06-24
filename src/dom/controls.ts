@@ -116,7 +116,7 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
 
   updateContainer(container, selected, target, el, state);
 
-  return {
+  const controls: Controls = {
     container,
     lines: {
       top: getLine(container, target, lineDesignations.top, moving),
@@ -136,6 +136,13 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
     destroy: () => {
       container.replaceChildren();
       container.remove();
+      for (const e of controls.guides.vertical) {
+        e.remove();
+      }
+      for (const e of controls.guides.horizontal) {
+        e.remove();
+      }
+      if (box.childElementCount === 0) box.remove();
     },
     getDotDesignation: (checking) => {
       const key = checking.dataset.moveItDesignation;
@@ -151,6 +158,7 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
       return lineDesignations[key as keyof typeof lineDesignations] as Exclude<LineDesignation, "rotate">;
     }
   };
+  return controls;
 }
 
 function updateContainer(container: HTMLElement, selected: boolean, target: string, el: HTMLElement, state: RectState) {
@@ -267,7 +275,9 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, opti
   function makeSureItExists(val: number, vertical: boolean) {
     const elements = vertical ? allGuides.vertical : allGuides.horizontal;
     const existing = elements[val];
-    if (!moving.isSelected() || getDistanceToLine(rect, val, !vertical) > snapping!.grid!.displayThreshold) {
+    const parentBox = options.controlRoot.getBoundingClientRect();
+    const offset = vertical ? parentBox.left : parentBox.top;
+    if (!moving.isSelected() || getDistanceToLine(rect, val + offset, !vertical) > snapping!.grid!.displayThreshold) {
       if (existing) existing.style.visibility = "hidden";
     } else {
       const line = existing

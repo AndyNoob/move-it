@@ -15,7 +15,7 @@ const snapping = {
     displayThreshold: 20,
     threshold: 5,
     verticalX: [controlRoot.offsetWidth / 2],
-    horizontalY: [controlRoot.offsetWidth / 10 * 9]
+    horizontalY: [controlRoot.offsetHeight / 10 * 8]
   }
 };
 

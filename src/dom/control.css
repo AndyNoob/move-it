@@ -85,15 +85,8 @@
   cursor: move;
 }
 
-/*noinspection CssUnresolvedCustomProperty*/
-.CONTROL_ID .vert-grid {
+.CONTROL_ID .vert-grid, .CONTROL_ID .hori-grid {
   width: 1px;
-  height: 100vh;
-}
-
-/*noinspection CssUnresolvedCustomProperty*/
-.CONTROL_ID .hori-grid {
-  width: 100vw;
   height: 1px;
 }
 

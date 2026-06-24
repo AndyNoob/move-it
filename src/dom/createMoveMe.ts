@@ -67,7 +67,7 @@ export function computeState(element: HTMLElement) {
   return {
     x: ((element.parentElement?.clientLeft || 0) - element.clientLeft),
     y: ((element.parentElement?.clientTop || 0) - element.clientTop),
-    width: element.clientWidth,
+    width: element.offsetWidth,
     height: element.offsetHeight,
     rotation: getRotation(element),
   }
