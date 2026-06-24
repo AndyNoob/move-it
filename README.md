@@ -7,7 +7,8 @@ A library that adds simple PowerPoint like DOM object manipulation: resize, drag
 
 ## The lifecycle
 
-> [!NOTE] Fully functional sample code can be found [here](playground/main.ts).
+> [!NOTE] 
+> Fully functional sample code can be found [here](playground/main.ts).
 
 To start, create an instance of `Moving` by calling `createMoveMe` (or `MoveIt.createMoveMe`). For example:
 ```ts
@@ -30,7 +31,8 @@ const moving = createMoveMe(el, {
 });
 ```
 
-> [!NOTE] If `initialState` is not present as a part of the option parameter, `computeState` will be called to calculate a `RectState` from the target element (width, rotation, etc.).
+> [!NOTE] 
+> If `initialState` is not present as a part of the option parameter, `computeState` will be called to calculate a `RectState` from the target element (width, rotation, etc.).
 
 Calling the `createMoveMe` function will return an instance of the `Moving` interface: 
 ```ts
