@@ -1,5 +1,5 @@
 {
-  "name": "move-it",
+  "name": "@andynoob/move-it",
   "version": "0.0.1",
   "description": "DOM rectangle transform controls",
   "main": "./dist/index.cjs",

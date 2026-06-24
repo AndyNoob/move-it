@@ -5,9 +5,12 @@ A library that adds simple PowerPoint like DOM object manipulation: resize, drag
 
 <img alt="demo gif" src="assets/move-it-demo.gif" width="480"/>
 
+## Installing
+
+Run `npm i @andynoob/move-it` and read on.
+
 ## The lifecycle
 
-> [!NOTE] 
 > Fully functional sample code can be found [here](playground/main.ts).
 
 To start, create an instance of `Moving` by calling `createMoveMe` (or `MoveIt.createMoveMe`). For example:
@@ -31,7 +34,6 @@ const moving = createMoveMe(el, {
 });
 ```
 
-> [!NOTE] 
 > If `initialState` is not present as a part of the option parameter, `computeState` will be called to calculate a `RectState` from the target element (width, rotation, etc.).
 
 Calling the `createMoveMe` function will return an instance of the `Moving` interface: 
