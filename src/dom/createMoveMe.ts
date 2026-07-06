@@ -16,7 +16,8 @@ export interface MoveMeOpt {
    * this should ideally be the same parent as the target element ({@linkcode HTMLElement.parentElement}),
    * otherwise there might be weird issues with coordinates
    */
-  controlRoot: HTMLElement
+  controlRoot: HTMLElement,
+  disableFeatures?: DisableFeatures
 }
 
 export interface SnappingOpt {
@@ -40,6 +41,15 @@ export interface SnappingGrid {
 export interface SnappingRotation {
   anglesDeg: number[],
   threshold: number
+}
+
+/**
+ * Set to `true` to disable, leave as is (or `false`) to keep enabled.
+ */
+export interface DisableFeatures {
+  drag?: boolean,
+  rotate?: boolean,
+  resize?: boolean
 }
 
 export interface Moving {
@@ -93,7 +103,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   let startState: RectState | null;
 
   function onPointerMove(event: { x: number, y: number, shiftKey: boolean }) {
-    if (!state || !startPos || !startState || !lastPos) return;
+    if (!state || !startPos || !startState || !lastPos || !mode) return;
 
     const old = {...state};
     const movement = delta(lastPos, event);
@@ -168,6 +178,18 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
         designation = (dotClick || lineClick)!;
         mode = "resize";
       }
+    }
+
+    switch (mode) {
+      case "resize":
+        if (option.disableFeatures?.resize) mode = null;
+        break;
+      case "drag":
+        if (option.disableFeatures?.drag) mode = null;
+        break;
+      case "rotate":
+        if (option.disableFeatures?.rotate) mode = null;
+        break;
     }
 
     startState = state!;

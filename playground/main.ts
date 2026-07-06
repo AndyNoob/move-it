@@ -40,7 +40,10 @@ w.moveMe2 = createMoveMe(el1, {
     rotation: 299
   },
   snapping,
-  controlRoot
+  controlRoot,
+  disableFeatures: {
+    resize: true
+  }
 });
 
 w.moveMe1.addCollisionSibling(w.moveMe2);
