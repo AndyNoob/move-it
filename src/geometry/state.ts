@@ -6,9 +6,13 @@ export interface RectState {
   width: number,
   height: number,
   /**
-   * degrees, 0-360
+   * @description degrees, 0-360
    */
   rotation: number,
+  /**
+   * @description when `true`, the `x`, `y`, `width`, and `height` properties become relative to the `controlRoot`'s width and height
+   */
+  readonly usePercent?: boolean
 }
 
 export function moveRect(
@@ -43,4 +47,25 @@ export function rotateRect(
     ...start,
     rotation: normalizeDeg(angle),
   };
+}
+
+export function convertToPercent(container: {
+  offsetWidth: number,
+  offsetHeight: number
+}, state: RectState): RectState {
+  if (state.usePercent) return state;
+  const left = state.x / container.offsetWidth;
+  const top = state.y / container.offsetHeight;
+  const width = state.width / container.offsetWidth;
+  const height = state.height / container.offsetWidth;
+  return {...state, x: left, y: top, width, height, usePercent: true};
+}
+
+export function convertToPixels(container: { offsetWidth: number, offsetHeight: number }, state: RectState): RectState {
+  if (!state.usePercent) return state;
+  const x = state.x * container.offsetWidth;
+  const y = state.y * container.offsetHeight;
+  const width = state.width * container.offsetWidth;
+  const height = state.height * container.offsetWidth;
+  return {...state, x, y, width, height, usePercent: false};
 }

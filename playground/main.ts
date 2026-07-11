@@ -50,7 +50,8 @@ w.moveMe1.addCollisionSibling(w.moveMe2);
 w.moveMe2.addCollisionSibling(w.moveMe1);
 
 createMoveMe(document.querySelector("#move-me")!, {
-  controlRoot: controlRoot
+  controlRoot: controlRoot,
+  doResize: true
 });
 
 w.reset = (v: number) => {

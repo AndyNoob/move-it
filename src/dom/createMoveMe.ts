@@ -1,4 +1,4 @@
-import type {RectState} from "../geometry/state"
+import {convertToPercent, convertToPixels, type RectState} from "../geometry/state"
 import {moveRect, resizeRect, rotateRect} from "../geometry/state";
 import {getPivot, getRotation, renderToCss} from "./htmlUtil";
 import type {Controls, DotDesignation, LineDesignation} from "./controls";
@@ -17,7 +17,8 @@ export interface MoveMeOpt {
    * otherwise there might be weird issues with coordinates
    */
   controlRoot: HTMLElement,
-  disableFeatures?: DisableFeatures
+  disableFeatures?: DisableFeatures,
+  doResize?: boolean
 }
 
 export interface SnappingOpt {
@@ -55,7 +56,7 @@ export interface DisableFeatures {
 export interface Moving {
   element: HTMLElement,
   id: string,
-  getState: () => RectState,
+  getState: (usePercent?: boolean) => RectState,
   destroy: () => void,
   render: () => void,
   select: () => void,
@@ -88,7 +89,9 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   element.dataset.moveItId = id;
 
   const siblings: Moving[] = [];
-  let state: RectState = option && option.initialState ? option.initialState : computeState(element)
+  let state: RectState = option && option.initialState ? option.initialState : computeState(element);
+
+  if (state.usePercent) state = convertToPixels(option.controlRoot, state);
 
   if (option.initialState)
     renderToCss(element, option.initialState);
@@ -314,10 +317,26 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
     return changed;
   }
 
+  let obs: ResizeObserver | null = null;
+  if (option.doResize) {
+    let prevSize: {offsetWidth: number, offsetHeight: number} | null = null;
+    obs = new ResizeObserver(() => {
+      if (prevSize === null) {
+        prevSize = {offsetWidth: option.controlRoot.offsetWidth, offsetHeight: option.controlRoot.offsetHeight};
+        return;
+      }
+      const relativeState = convertToPercent(prevSize, state);
+      state = convertToPixels(option.controlRoot, relativeState);
+      render();
+      prevSize = {offsetWidth: option.controlRoot.offsetWidth, offsetHeight: option.controlRoot.offsetHeight};
+    });
+    obs.observe(option.controlRoot);
+  }
+
   const moving: Moving = {
     element,
     id,
-    getState: () => state!,
+    getState: (usePercent = false) => usePercent ? convertToPercent(option.controlRoot, state!) : state!,
     destroy: () => {
       controls.destroy();
       delete element.dataset.moveItId;
@@ -326,6 +345,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("keydown", keydown);
       window.removeEventListener("keyup", onShiftRatio);
+      if (obs) obs.disconnect();
     },
     render,
     select: () => {
