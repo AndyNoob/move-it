@@ -115,7 +115,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
       case "drag": {
         state = moveRect(state, movement.x, movement.y);
         const grid = option?.snapping?.grid;
-        if (grid && !event.shiftKey) handleDragSnap(element, state, grid);
+        if (grid && !event.shiftKey) handleDragSnap(element, state, grid, option);
         break;
       }
       case "resize": {

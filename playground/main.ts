@@ -51,7 +51,15 @@ w.moveMe2.addCollisionSibling(w.moveMe1);
 
 createMoveMe(document.querySelector("#move-me")!, {
   controlRoot: controlRoot,
-  doResize: true
+  doResize: true,
+  snapping: {
+    grid: {
+      displayThreshold: 10,
+      threshold: 4,
+      verticalX: [0.5],
+      horizontalY: [0.9]
+    }
+  }
 });
 
 w.reset = (v: number) => {

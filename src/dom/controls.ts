@@ -277,7 +277,12 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, opti
     const existing = elements[val];
     const parentBox = options.controlRoot.getBoundingClientRect();
     const offset = vertical ? parentBox.left : parentBox.top;
-    if (!moving.isSelected() || getDistanceToLine(rect, val + offset, !vertical) > snapping!.grid!.displayThreshold) {
+    const distanceToLine = getDistanceToLine(
+      rect,
+      (options.doResize ? (vertical ? options.controlRoot.offsetWidth : options.controlRoot.offsetHeight) : 1) * val + offset,
+      !vertical
+    );
+    if (!moving.isSelected() || distanceToLine > snapping!.grid!.displayThreshold) {
       if (existing) existing.style.visibility = "hidden";
     } else {
       const line = existing
@@ -285,11 +290,11 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, opti
       const className = vertical ? "vert-grid" : "hori-grid";
       if (!line.classList.contains(className)) line.classList.add(className);
       if (vertical) {
-        line.style.left = `${val}px`;
+        line.style.left = `${(options.doResize ? options.controlRoot.offsetWidth : 1) * val}px`;
         line.style.height = `${options.controlRoot.offsetHeight}px`;
       }
       else {
-        line.style.top = `${val}px`;
+        line.style.top = `${(options.doResize ? options.controlRoot.offsetHeight : 1) * val}px`;
         line.style.width = `${options.controlRoot.offsetWidth}px`;
       }
       line.style.visibility = "visible";

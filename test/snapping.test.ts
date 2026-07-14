@@ -19,18 +19,18 @@ describe("snapping", () => {
       },
     };
 
-    const instance = createMoveMe(el, {
+    const options = {
       initialState: { x: 98, y: 0, width: 100, height: 50, rotation: 0 },
-      onChange: () => {},
       controlRoot: document.body,
       snapping,
-    });
+    };
+    const instance = createMoveMe(el, options);
 
     instance.select();
 
     const controls = instance.updateControls();
 
-    handleDragSnap(el, instance.getState(), snapping.grid!);
+    handleDragSnap(el, instance.getState(), snapping.grid!, options);
 
     expect(instance.getState().x).toBe(100);
     expect(controls.guides.vertical[0]).toBeDefined();
