@@ -228,6 +228,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
 
   function onArrowKeys(event: KeyboardEvent) {
     if (!state) return;
+    if (!selected) return;
     if (mode != null) return;
     let key = event.key.toLowerCase();
     if (!key.startsWith("arrow")) return;
