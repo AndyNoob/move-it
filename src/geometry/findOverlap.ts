@@ -29,6 +29,9 @@ and apply that to one of the boxes.
  */
 
 export function findOverlap(a: RectState, b: RectState, debugLog = false): Vec2 | null {
+  if (a.usePercent || b.usePercent) {
+    throw new Error("convert RectState object with convertToPixels first");
+  }
   const ab = getBasis(a);
   const bb = getBasis(b);
   const axes: Vec2[] = [
