@@ -13,6 +13,8 @@ Run `npm i @andynoob/move-it` and read on.
 
 > Fully functional sample code can be found [here](playground/main.ts).
 
+> Please ensure that the moving element is absolutely positioned, relative to the control root. Otherwise, expect the transform controls to be mis-fit around the moving element.
+
 To start, create an instance of `Moving` by calling `createMoveMe` (or `MoveIt.createMoveMe`). For example:
 ```ts
 const el = document.querySelector(/* ... */);
@@ -27,10 +29,14 @@ const moving = createMoveMe(el, {
     y: 200,
     width: 200,
     height: 120,
-    rotation: 75
+    rotation: 75,
+    // when usePercent = true, the x, y, width, and height values become percentages (0-1) relative to the control root
+    usePercent: false 
   },
   snapping, // optional
-  controlRoot // required, sets the bounds for the object  
+  controlRoot, // required, sets the bounds for the object
+  // when doResize = true, the moving element will resize with control root. this also impact snapping (see section on snapping)
+  doResize: false 
 });
 ```
 
@@ -83,6 +89,8 @@ There are two types of snapping behaviors: rotation snapping, and guideline base
 | Rotation Snap                                                                 | Guideline Snap                                                                  |
 |-------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
 | <img alt="rotation snap" src="assets/move-it-rotation-snap.gif" width="480"/> | <img alt="guideline snap" src="assets/move-it-guideline-snap.gif" width="480"/> |
+
+> When `doResize` is true, the grid x & y are percentages (0-1)
 
 The `SnappingOpt` interface is defined as follows:
 ```ts
