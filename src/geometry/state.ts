@@ -57,7 +57,7 @@ export function convertToPercent(container: {
   const left = state.x / container.offsetWidth;
   const top = state.y / container.offsetHeight;
   const width = state.width / container.offsetWidth;
-  const height = state.height / container.offsetWidth;
+  const height = state.height / container.offsetHeight;
   return {...state, x: left, y: top, width, height, usePercent: true};
 }
 
@@ -66,6 +66,6 @@ export function convertToPixels(container: { offsetWidth: number, offsetHeight: 
   const x = state.x * container.offsetWidth;
   const y = state.y * container.offsetHeight;
   const width = state.width * container.offsetWidth;
-  const height = state.height * container.offsetWidth;
+  const height = state.height * container.offsetHeight;
   return {...state, x, y, width, height, usePercent: false};
 }
