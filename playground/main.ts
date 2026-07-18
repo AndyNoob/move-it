@@ -76,3 +76,37 @@ const text = document.body.appendChild(document.createTextNode("YO"));
 w.addEventListener("mousemove", (e: PointerEvent) => {
   text.textContent = `${e.x} ${e.y}`;
 });
+
+const lines = [
+  "To be or not to be, that is the question. Probably. Maybe?",
+  "I forgot to bring my pants today.",
+  "Did you know? You're the dumbest person I know.",
+  "Go to the principals office... actually scratch that just go entertain yourself and get out of my sight.",
+  "Don't let a good day distract you from the failure you've become.",
+  "I got inflammation. I am finna go spread some misinformation."
+];
+
+const dialoguesEl = document.querySelector("#dialogues")! as HTMLElement;
+const dialoguesMoving = createMoveMe(dialoguesEl, {
+  doResize: true,
+  controlRoot,
+  snapping: {
+    grid: {
+      displayThreshold: 10,
+      threshold: 4,
+      verticalX: [0.5],
+      horizontalY: [0.9]
+    }
+  },
+  autoSize: true
+});
+
+console.log(dialoguesMoving.getState());
+
+let counter = 0;
+
+setInterval(() => {
+  const state = dialoguesMoving.getState(true, true);
+  dialoguesEl.textContent = lines[counter++ % lines.length]!;
+  console.log(state);
+}, 3000);

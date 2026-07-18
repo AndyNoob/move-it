@@ -40,10 +40,12 @@ export function appendStylesheetRules(str: string, id?: string) {
   styleEl.textContent += str;
 }
 
-export function renderToCss(el: HTMLElement, state: RectState) {
-  el.style.width = `${state.width}px`;
-  el.style.height = `${state.height}px`;
-  el.style.transform = ` 
+export function renderToCss(el: HTMLElement, state: RectState, autoSize = false) {
+  if (!autoSize) {
+    el.style.width = `${state.width}px`;
+    el.style.height = `${state.height}px`;
+  }
+  el.style.transform = `
       translate(${state.x}px, ${state.y}px)
       rotate(${state.rotation}deg)
     `;

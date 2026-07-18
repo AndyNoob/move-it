@@ -1,4 +1,4 @@
-import {convertToPercent, convertToPixels, type RectState} from "../geometry/state"
+import {convertToCentered, convertToPercent, convertToPixels, convertToTopLeft, type RectState} from "../geometry/state"
 import {moveRect, resizeRect, rotateRect} from "../geometry/state";
 import {getPivot, getRotation, renderToCss} from "./htmlUtil";
 import type {Controls, DotDesignation, LineDesignation} from "./controls";
@@ -13,12 +13,18 @@ export interface MoveMeOpt {
   snapping?: SnappingOpt,
   onChange?: (next: RectState) => void,
   /**
-   * this should ideally be the same parent as the target element ({@linkcode HTMLElement.parentElement}),
+   * @description this should ideally be the same parent as the target element ({@linkcode HTMLElement.parentElement}),
    * otherwise there might be weird issues with coordinates
    */
   controlRoot: HTMLElement,
   disableFeatures?: DisableFeatures,
-  doResize?: boolean
+  doResize?: boolean,
+  /**
+   * @description when `true`, the library stops assigning width and height directly via CSS, but rather syncs the
+   * `RectState` automatically whenever the size changes via DOM `ResizeObserver`. this also implicitly disables the
+   * resize feature
+   */
+  autoSize?: boolean
 }
 
 export interface SnappingOpt {
@@ -56,7 +62,11 @@ export interface DisableFeatures {
 export interface Moving {
   element: HTMLElement,
   id: string,
-  getState: (usePercent?: boolean) => RectState,
+  /**
+   * @description a copy of the current `RectState`.
+   */
+  getState: (usePercent?: boolean, centered?: boolean) => RectState,
+  updateState: (partial: Partial<RectState>) => void,
   destroy: () => void,
   render: () => void,
   select: () => void,
@@ -91,6 +101,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   const siblings: Moving[] = [];
   let state: RectState = option && option.initialState ? option.initialState : computeState(element);
 
+  if (state.centered) state = convertToTopLeft(state, option.controlRoot);
   if (state.usePercent) state = convertToPixels(option.controlRoot, state);
 
   if (option.initialState)
@@ -185,7 +196,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
 
     switch (mode) {
       case "resize":
-        if (option.disableFeatures?.resize) mode = null;
+        if (option.disableFeatures?.resize || option.autoSize) mode = null;
         break;
       case "drag":
         if (option.disableFeatures?.drag) mode = null;
@@ -270,7 +281,8 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   //</editor-fold>
 
   function render() {
-    renderToCss(element, state!);
+    renderToCss(element, state!, option.autoSize);
+    if (option.autoSize) syncMeasuredSize();
     controls = updateControls(element, moving, option, selected);
   }
 
@@ -318,10 +330,10 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
     return changed;
   }
 
-  let obs: ResizeObserver | null = null;
+  let pctObs: ResizeObserver | null = null;
   if (option.doResize) {
     let prevSize: {offsetWidth: number, offsetHeight: number} | null = null;
-    obs = new ResizeObserver(() => {
+    pctObs = new ResizeObserver(() => {
       if (prevSize === null) {
         prevSize = {offsetWidth: option.controlRoot.offsetWidth, offsetHeight: option.controlRoot.offsetHeight};
         return;
@@ -331,13 +343,56 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
       render();
       prevSize = {offsetWidth: option.controlRoot.offsetWidth, offsetHeight: option.controlRoot.offsetHeight};
     });
-    obs.observe(option.controlRoot);
+    pctObs.observe(option.controlRoot);
+  }
+
+  function syncMeasuredSize() {
+    if (!state) return;
+    const measuredW = element.offsetWidth;
+    const measuredH = element.offsetHeight;
+    if (measuredW === state.width && measuredH === state.height) return;
+    const dx = measuredW - state.width;
+    const dy = measuredH - state.height;
+
+    state = {
+      ...state,
+      x: state.x - dx / 2,
+      y: state.y - dy / 2,
+      width: measuredW,
+      height: measuredH,
+    };
+  }
+
+  let sizeObs: ResizeObserver | null = null;
+  if (option.autoSize) {
+    sizeObs = new ResizeObserver(() => {
+      syncMeasuredSize();
+      render();
+      if (option.onChange) option.onChange(state!);
+      controls = updateControls(element, moving, option, selected);
+    });
+    sizeObs.observe(element);
   }
 
   const moving: Moving = {
     element,
     id,
-    getState: (usePercent = false) => usePercent ? convertToPercent(option.controlRoot, state!) : state!,
+    getState: (usePercent = false, centered = false) => {
+      if (option.autoSize) syncMeasuredSize();
+      let s: RectState = state!;
+      if (usePercent) s = convertToPercent(option.controlRoot, s);
+      if (centered) s = convertToCentered(s, option.controlRoot);
+      return {...s};
+    },
+    updateState: (partial: Partial<RectState>) => {
+      let next = {...state!, ...partial};
+      if (next.usePercent) next = convertToPixels(option.controlRoot, next);
+      if (next.centered) next = convertToTopLeft(next, option.controlRoot);
+      state = next;
+      if (option.autoSize) syncMeasuredSize();
+      if (option.onChange) option.onChange(state);
+      render();
+    },
     destroy: () => {
       controls.destroy();
       delete element.dataset.moveItId;
@@ -346,7 +401,8 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("keydown", keydown);
       window.removeEventListener("keyup", onShiftRatio);
-      if (obs) obs.disconnect();
+      if (pctObs) pctObs.disconnect();
+      if (sizeObs) sizeObs.disconnect();
     },
     render,
     select: () => {
