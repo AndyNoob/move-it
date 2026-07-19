@@ -1,6 +1,6 @@
 {
   "name": "@andynoob/move-it",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "DOM rectangle transform controls",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
