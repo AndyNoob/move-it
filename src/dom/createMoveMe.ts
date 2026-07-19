@@ -101,7 +101,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   const siblings: Moving[] = [];
   let state: RectState = option && option.initialState ? option.initialState : computeState(element);
 
-  if (state.centered) state = convertToTopLeft(state, option.controlRoot);
+  if (state.centered) state = convertToTopLeft(state);
   if (state.usePercent) state = convertToPixels(option.controlRoot, state);
 
   if (option.initialState)
@@ -381,13 +381,13 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
       if (option.autoSize) syncMeasuredSize();
       let s: RectState = state!;
       if (usePercent) s = convertToPercent(option.controlRoot, s);
-      if (centered) s = convertToCentered(s, option.controlRoot);
+      if (centered) s = convertToCentered(s);
       return {...s};
     },
     updateState: (partial: Partial<RectState>) => {
       let next = {...state!, ...partial};
       if (next.usePercent) next = convertToPixels(option.controlRoot, next);
-      if (next.centered) next = convertToTopLeft(next, option.controlRoot);
+      if (next.centered) next = convertToTopLeft(next);
       state = next;
       if (option.autoSize) syncMeasuredSize();
       if (option.onChange) option.onChange(state);

@@ -67,65 +67,43 @@ export function rotateRect(
 export function convertToPercent(container: Container, state: RectState): RectState {
   if (state.usePercent) return state;
   const wasCentered = state.centered ?? false;
-  if (wasCentered) state = convertToTopLeft(state, container);
+  if (wasCentered) state = convertToTopLeft(state);
   const left = state.x / container.offsetWidth;
   const top = state.y / container.offsetHeight;
   const width = state.width / container.offsetWidth;
   const height = state.height / container.offsetHeight;
   const next = {...state, x: left, y: top, width, height, usePercent: true};
-  return wasCentered ? convertToCentered(next, container) : next;
+  return wasCentered ? convertToCentered(next) : next;
 }
 
 export function convertToPixels(container: { offsetWidth: number, offsetHeight: number }, state: RectState): RectState {
   if (!state.usePercent) return state;
   const wasCentered = state.centered ?? false;
-  if (wasCentered) state = convertToTopLeft(state, container);
+  if (wasCentered) state = convertToTopLeft(state);
   const x = state.x * container.offsetWidth;
   const y = state.y * container.offsetHeight;
   const width = state.width * container.offsetWidth;
   const height = state.height * container.offsetHeight;
   const next = {...state, x, y, width, height, usePercent: false};
-  return wasCentered ? convertToCentered(next, container) : next;
+  return wasCentered ? convertToCentered(next) : next;
 }
 
-export function convertToCentered(state: RectState, container?: Container): RectState {
+export function convertToCentered(state: RectState): RectState {
   if (state.centered) return state;
-  if (state.usePercent) {
-    if (container) {
-      return {
-        ...state,
-        x: state.x + state.width / 2 / container.offsetWidth,
-        y: state.y + state.width / 2 / container.offsetHeight,
-        centered: true
-      };
-    } else throw new Error("convertToCentered: container/control root needed");
-  } else {
-    return {
-      ...state,
-      x: state.x + state.width / 2,
-      y: state.y + state.height / 2,
-      centered: true
-    };
-  }
+  return {
+    ...state,
+    x: state.x + state.width / 2,
+    y: state.y + state.height / 2,
+    centered: true
+  };
 }
 
-export function convertToTopLeft(state: RectState, container?: Container): RectState {
+export function convertToTopLeft(state: RectState): RectState {
   if (!state.centered) return state;
-  if (state.usePercent) {
-    if (container) {
-      return {
-        ...state,
-        x: state.x - state.width / 2 / container.offsetWidth,
-        y: state.y - state.height / 2 / container.offsetHeight,
-        centered: false
-      };
-    } else throw new Error("convertToCentered: container/control root needed");
-  } else {
-    return {
-      ...state,
-      x: state.x - state.width / 2,
-      y: state.y - state.height / 2,
-      centered: false
-    };
-  }
+  return {
+    ...state,
+    x: state.x - state.width / 2,
+    y: state.y - state.height / 2,
+    centered: false
+  };
 }

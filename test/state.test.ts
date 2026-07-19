@@ -1,145 +1,196 @@
-import { describe, expect, it } from "vitest";
-import { moveRect, rotateRect } from "../src/geometry/state";
-import {
-  convertToPercent,
-  convertToPixels,
-} from "../src";
-import type { RectState } from "../src";
-
-describe("state", () => {
-  const rect = {
-    x: 10,
-    y: 20,
-    width: 100,
-    height: 50,
-    rotation: 0,
-  };
-
-  it("moves a rect by dx/dy", () => {
-    expect(moveRect(rect, 5, -10)).toEqual({
-      ...rect,
-      x: 15,
-      y: 10,
-    });
-  });
-
-  it("rotates a rect", () => {
-    expect(rotateRect(rect, 45)).toEqual({
-      ...rect,
-      rotation: 45,
-    });
-  });
-});
+import {describe, expect, it} from "vitest";
+import type {RectState} from "../src";
+import {convertToCentered, convertToPercent, convertToPixels, convertToTopLeft,} from "../src";
 
 const container = {
   offsetWidth: 800,
   offsetHeight: 600,
 };
 
-const pixelState: RectState = {
-  x: 200,
-  y: 150,
-  width: 400,
-  height: 300,
-  rotation: 30,
-  usePercent: false,
-};
-
-describe("convertToPercent", () => {
-  it("converts pixel values into container-relative values", () => {
-    expect(convertToPercent(container, pixelState)).toEqual({
-      ...pixelState,
-      x: 0.25,
-      y: 0.25,
-      width: 0.5,
-      height: 0.5,
-      usePercent: true,
-    });
-  });
-
-  it("preserves unrelated state properties", () => {
-    const result = convertToPercent(container, pixelState);
-
-    expect(result.rotation).toBe(30);
-  });
-
-  it("returns the same object when already using percentages", () => {
-    const percentState: RectState = {
-      ...pixelState,
-      x: 0.25,
-      y: 0.25,
-      width: 0.5,
-      height: 0.5,
-      usePercent: true,
-    };
-
-    expect(convertToPercent(container, percentState)).toBe(percentState);
-  });
-
-  it("supports positions outside the container", () => {
+describe("convertToCentered", () => {
+  it("converts pixel top-left coordinates to centered coordinates", () => {
     const state: RectState = {
-      ...pixelState,
-      x: -80,
-      y: 900,
-    };
-
-    expect(convertToPercent(container, state)).toMatchObject({
-      x: -0.1,
-      y: 1.5,
-      usePercent: true,
-    });
-  });
-});
-
-describe("convertToPixels", () => {
-  it("converts container-relative values into pixels", () => {
-    const percentState: RectState = {
-      ...pixelState,
-      x: 0.25,
-      y: 0.25,
-      width: 0.5,
-      height: 0.5,
-      usePercent: true,
-    };
-
-    expect(convertToPixels(container, percentState)).toEqual({
-      ...percentState,
-      x: 200,
+      x: 100,
       y: 150,
-      width: 400,
-      height: 300,
+      width: 200,
+      height: 100,
+      rotation: 0,
       usePercent: false,
+      centered: false,
+    };
+
+    expect(convertToCentered(state)).toEqual({
+      ...state,
+      x: 200,
+      y: 200,
+      centered: true,
     });
   });
 
-  it("returns the same object when already using pixels", () => {
-    expect(convertToPixels(container, pixelState)).toBe(pixelState);
-  });
-
-  it("supports fractional pixel results", () => {
-    const percentState: RectState = {
-      ...pixelState,
-      x: 1 / 3,
-      y: 1 / 3,
-      width: 1 / 3,
-      height: 1 / 3,
+  it("converts percentage top-left coordinates to centered coordinates", () => {
+    const state: RectState = {
+      x: 0.125,
+      y: 0.25,
+      width: 0.25,
+      height: 1 / 6,
+      rotation: 0,
       usePercent: true,
+      centered: false,
     };
 
-    const result = convertToPixels(container, percentState);
+    expect(convertToCentered(state)).toEqual({
+      ...state,
+      x: 0.25,
+      y: 1 / 3,
+      centered: true,
+    });
+  });
 
-    expect(result.x).toBeCloseTo(800 / 3);
-    expect(result.y).toBeCloseTo(200);
-    expect(result.width).toBeCloseTo(800 / 3);
-    expect(result.height).toBeCloseTo(200);
+  it("returns the same object when already centered", () => {
+    const state: RectState = {
+      x: 200,
+      y: 200,
+      width: 200,
+      height: 100,
+      rotation: 0,
+      usePercent: false,
+      centered: true,
+    };
+
+    expect(convertToCentered(state)).toBe(state);
   });
 });
 
-describe("pixel/percent conversion", () => {
-  it("round-trips a pixel state", () => {
-    const percent = convertToPercent(container, pixelState);
-    const pixels = convertToPixels(container, percent);
+describe("convertToTopLeft", () => {
+  it("converts centered pixel coordinates to top-left coordinates", () => {
+    const state: RectState = {
+      x: 200,
+      y: 200,
+      width: 200,
+      height: 100,
+      rotation: 0,
+      usePercent: false,
+      centered: true,
+    };
 
-    expect(pixels).toEqual(pixelState);
+    expect(convertToTopLeft(state)).toEqual({
+      ...state,
+      x: 100,
+      y: 150,
+      centered: false,
+    });
+  });
+
+  it("converts centered percentage coordinates to top-left coordinates", () => {
+    const state: RectState = {
+      x: 0.25,
+      y: 1 / 3,
+      width: 0.25,
+      height: 1 / 6,
+      rotation: 0,
+      usePercent: true,
+      centered: true,
+    };
+
+    expect(convertToTopLeft(state)).toEqual({
+      ...state,
+      x: 0.125,
+      y: 0.25,
+      centered: false,
+    });
+  });
+
+  it("returns the same object when already top-left based", () => {
+    const state: RectState = {
+      x: 100,
+      y: 150,
+      width: 200,
+      height: 100,
+      rotation: 0,
+      usePercent: false,
+      centered: false,
+    };
+
+    expect(convertToTopLeft(state)).toBe(state);
+  });
+});
+
+describe("centered conversion round trips", () => {
+  it("round-trips a pixel state", () => {
+    const original: RectState = {
+      x: 100,
+      y: 150,
+      width: 200,
+      height: 100,
+      rotation: 30,
+      usePercent: false,
+      centered: false,
+    };
+
+    const centered = convertToCentered(original);
+    const restored = convertToTopLeft(centered);
+
+    expect(restored).toEqual(original);
+  });
+
+  it("round-trips a percentage state", () => {
+    const original: RectState = {
+      x: 0.125,
+      y: 0.25,
+      width: 0.25,
+      height: 1 / 6,
+      rotation: 30,
+      usePercent: true,
+      centered: false,
+    };
+
+    const centered = convertToCentered(original);
+    const restored = convertToTopLeft(centered);
+
+    expect(restored.x).toBeCloseTo(original.x);
+    expect(restored.y).toBeCloseTo(original.y);
+    expect(restored.width).toBeCloseTo(original.width);
+    expect(restored.height).toBeCloseTo(original.height);
+    expect(restored).toMatchObject({
+      rotation: original.rotation,
+      usePercent: true,
+      centered: false,
+    });
+  });
+
+  it("converts centered pixels to percentages and back", () => {
+    const original: RectState = {
+      x: 200,
+      y: 200,
+      width: 200,
+      height: 100,
+      rotation: 30,
+      usePercent: false,
+      centered: true,
+    };
+
+    const percent = convertToPercent(container, original);
+
+    expect(percent.x).toBeCloseTo(0.25);
+    expect(percent.y).toBeCloseTo(1 / 3);
+    expect(percent.width).toBeCloseTo(0.25);
+    expect(percent.height).toBeCloseTo(1 / 6);
+    expect(percent).toMatchObject({
+      rotation: 30,
+      usePercent: true,
+      centered: true,
+    });
+
+    const restored = convertToPixels(container, percent);
+
+    expect(restored.x).toBeCloseTo(original.x);
+    expect(restored.y).toBeCloseTo(original.y);
+    expect(restored.width).toBeCloseTo(original.width);
+    expect(restored.height).toBeCloseTo(original.height);
+    expect(restored).toMatchObject({
+      rotation: 30,
+      usePercent: false,
+      centered: true,
+    });
   });
 });
