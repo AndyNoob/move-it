@@ -1,6 +1,7 @@
 export { createMoveMe, computeState } from "./dom/createMoveMe";
 export { findOverlap } from "./geometry/findOverlap";
-export { convertToPercent, convertToPixels } from "./geometry/state"
+export { convertToPercent, convertToPixels, convertToTopLeft, convertToCentered } from "./geometry/state"
+export { renderToCss } from "./dom/htmlUtil"
 
 export type {
   MoveMeOpt,
