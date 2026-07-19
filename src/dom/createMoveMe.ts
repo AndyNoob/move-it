@@ -105,7 +105,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   if (state.usePercent) state = convertToPixels(option.controlRoot, state);
 
   if (option.initialState)
-    renderToCss(element, option.initialState);
+    renderToCss(element, option.initialState, option.autoSize);
 
   let selected = false;
 
