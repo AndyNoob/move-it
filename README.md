@@ -31,12 +31,20 @@ const moving = createMoveMe(el, {
     height: 120,
     rotation: 75,
     // when usePercent = true, the x, y, width, and height values become percentages (0-1) relative to the control root
-    usePercent: false 
+    usePercent: false,
+    // when centered = true, the RectState represents the center of the element. it is converted back to the default
+    // top left by subtracting half width and half height to the x and y. this can be used with usePercent
+    centered: false
   },
   snapping, // optional
   controlRoot, // required, sets the bounds for the object
-  // when doResize = true, the moving element will resize with control root. this also impact snapping (see section on snapping)
-  doResize: false 
+  // when doResize = true, the moving element will resize with control root. 
+  // this also impact snapping (see section on snapping)
+  doResize: false,
+  // when autoSize = true, the library stops assigning width and height directly via CSS, but rather syncs the 
+  // `RectState` automatically whenever the size changes via DOM `ResizeObserver`. keeping the element centered on itself  
+  // this also implicitly disables the resize feature. 
+  autoSize: false
 });
 ```
 
@@ -47,7 +55,11 @@ Calling the `createMoveMe` function will return an instance of the `Moving` inte
 interface Moving {
   element: HTMLElement,
   id: string,
-  getState: () => RectState,
+  /**
+   * a copy of the current `RectState`.
+   */
+  getState: (usePercent?: boolean, centered?: boolean) => RectState,
+  updateState: (partial: Partial<RectState>) => void,
   destroy: () => void,
   render: () => void,
   select: () => void,
@@ -147,6 +159,14 @@ The `Moving` interface allows you to add another `Moving` instance as a collisio
 <img alt="collision gif" src="assets/move-it-collision.gif" width="480"/>
 
 You may manually trigger collision resolution by calling `Moving.checkBounds`. The underlying function that powers this feature is [`findOverlap`](src/geometry/findOverlap.ts). It takes two `RectState` parameters. You may check a moving element against a non-moving element by calling `computeState` on the non-moving element to obtain a `RectState`.
+
+## Auto size
+
+> Enabling this feature disables resizing. 
+ 
+![demo gif](assets/move-it-auto-size.gif)
+
+When enabled in `MoveItOpt`, the library will sync the `width` and `height` of the `RectSate` to the actual computed width and height of the moving element. Additionally, whenever the moving element resizes, the library will shift the element such that it's center remains anchored in the same location. You should store the `RectState` of such moving elements as `centered=true` (i.e. `moving.getState(..., true)`).  
 
 # Credits
 
