@@ -1,5 +1,6 @@
 import type {RectState} from "../geometry/state";
 import cssText from "./control.css?inline";
+import type {Vec2} from "../geometry/geometry";
 
 const STYLE_ID = "mGW3wTwrZ6";
 export const CONTROLS_ID = "E4UKgq3cxN";
@@ -40,10 +41,13 @@ export function appendStylesheetRules(str: string, id?: string) {
   styleEl.textContent += str;
 }
 
-export function renderToCss(el: HTMLElement, state: RectState, autoSize = false) {
+export function renderToCss(el: HTMLElement, state: RectState, autoSize = false, pivotOffset?: Vec2) {
   if (!autoSize) {
     el.style.width = `${state.width}px`;
     el.style.height = `${state.height}px`;
+  }
+  if (pivotOffset) {
+    el.style.transformOrigin = `${pivotOffset.x * 100 + 50}% ${pivotOffset.y * 100 + 50}%`;
   }
   el.style.transform = `
       translate(${state.x}px, ${state.y}px)
@@ -106,11 +110,11 @@ export function getDistanceToLine(rect: DOMRect, k: number, horizontal: boolean)
   }
 }
 
-export function getPivot(element: HTMLElement) {
+export function getGlobalPivot(element: HTMLElement, pivotOffset?: Vec2) {
   const rect = element.getBoundingClientRect();
 
   return {
-    x: rect.left + rect.width / 2,
-    y: rect.top + rect.height / 2
+    x: rect.left + rect.width / 2 + (pivotOffset?.x || 0) * rect.width,
+    y: rect.top + rect.height / 2 + (pivotOffset?.y || 0) * rect.height
   };
 }

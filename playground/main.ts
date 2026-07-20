@@ -74,7 +74,8 @@ console.log(getRotation(el));
 const text = document.body.appendChild(document.createTextNode("YO"));
 
 w.addEventListener("mousemove", (e: PointerEvent) => {
-  text.textContent = `${e.x} ${e.y}`;
+  const rect = controlRoot.getBoundingClientRect();
+  text.textContent = `${e.x - rect.left} ${e.y - rect.top}`;
 });
 
 const lines = [
@@ -98,15 +99,14 @@ const dialoguesMoving = createMoveMe(dialoguesEl, {
       horizontalY: [0.9]
     }
   },
-  autoSize: true
+  autoSize: true,
+  pivotOffset: {x: 0, y: 0.5}
 });
-
-console.log(dialoguesMoving.getState());
+w.dialoguesMoving = dialoguesMoving;
 
 let counter = 0;
 
-setInterval(() => {
-  const state = dialoguesMoving.getState(true, true);
+window.addEventListener("keypress", (e) => {
+  if (e.key !== "0") return;
   dialoguesEl.textContent = lines[counter++ % lines.length]!;
-  console.log(state);
-}, 3000);
+});

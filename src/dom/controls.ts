@@ -114,7 +114,7 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
     box.appendChild(document.createElement("div"));
   const state = moving.getState();
 
-  updateContainer(container, selected, target, el, state);
+  updateContainer(container, selected, target, el, state, options);
 
   const controls: Controls = {
     container,
@@ -161,11 +161,15 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
   return controls;
 }
 
-function updateContainer(container: HTMLElement, selected: boolean, target: string, el: HTMLElement, state: RectState) {
+function updateContainer(container: HTMLElement, selected: boolean, target: string, el: HTMLElement, state: RectState, options: MoveMeOpt) {
   container.style.visibility = selected ? "visible" : "hidden";
   if (!container.classList.contains("container")) container.classList.add("container");
   container.dataset.moveItTarget = target;
-  container.style.transformOrigin = `${el.offsetWidth / 2}px ${el.offsetHeight / 2}px`;
+  const pivot = options.pivotOffset ?? {x: 0, y: 0};
+  container.style.transformOrigin = `
+    ${el.offsetWidth / 2 + el.offsetWidth * pivot.x}px 
+    ${el.offsetHeight / 2 + el.offsetHeight * pivot.y}px
+  `;
   container.style.transform = `
     translate(${state.x - LINE_SIZE / 2}px, ${state.y - LINE_SIZE / 2}px)
     rotate(${state.rotation}deg)

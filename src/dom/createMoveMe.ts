@@ -1,9 +1,9 @@
 import {convertToCentered, convertToPercent, convertToPixels, convertToTopLeft, type RectState} from "../geometry/state"
 import {moveRect, resizeRect, rotateRect} from "../geometry/state";
-import {getPivot, getRotation, renderToCss} from "./htmlUtil";
+import {getGlobalPivot, getRotation, renderToCss} from "./htmlUtil";
 import type {Controls, DotDesignation, LineDesignation} from "./controls";
 import {updateControls} from "./controls";
-import type {Vec2} from "../geometry/geometry";
+import {type Vec2} from "../geometry/geometry";
 import {cross, delta, dot, normalize, radToDeg, rotate, scale} from "../geometry/geometry";
 import {handleDragSnap, handleRotateSnap} from "./snapping";
 import {findOverlap} from "../geometry/findOverlap";
@@ -24,7 +24,13 @@ export interface MoveMeOpt {
    * `RectState` automatically whenever the size changes via DOM `ResizeObserver`. this also implicitly disables the
    * resize feature
    */
-  autoSize?: boolean
+  autoSize?: boolean,
+  /**
+   * @description percent (expressed as decimal) of each axis to offset the pivot point of the moving element.
+   * this will impact the rotation pivot, the grid snapping location, and `autoSize` if enabled. the default pivot
+   * point is the center of the element. to make it top left, do `{x: -0.5, y: -0.5}`.
+   */
+  pivotOffset?: Vec2
 }
 
 export interface SnappingOpt {
@@ -72,7 +78,7 @@ export interface Moving {
   select: () => void,
   isSelected: () => boolean,
   checkBounds: () => void,
-  updateControls: () => Controls,
+  updateControls: (select: boolean) => Controls,
   getCollisionSiblings: () => Moving[],
   /**
    * You need to do this for both instances, the behavior is not mirrored by default
@@ -103,9 +109,13 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
 
   if (state.centered) state = convertToTopLeft(state);
   if (state.usePercent) state = convertToPixels(option.controlRoot, state);
-
+  if (option.autoSize) {
+    state.width = -1
+    state.height = -1;
+    syncMeasuredSize();
+  }
   if (option.initialState)
-    renderToCss(element, option.initialState, option.autoSize);
+    renderToCss(element, state!, option.autoSize, option.pivotOffset);
 
   let selected = false;
 
@@ -126,7 +136,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
       case "drag": {
         state = moveRect(state, movement.x, movement.y);
         const grid = option?.snapping?.grid;
-        if (grid && !event.shiftKey) handleDragSnap(element, state, grid, option);
+        if (grid && !event.shiftKey) handleDragSnap(state, grid, option);
         break;
       }
       case "resize": {
@@ -135,7 +145,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
         break;
       }
       case "rotate": {
-        const pivot = getPivot(element);
+        const pivot = getGlobalPivot(element, option.pivotOffset);
 
         const toStart = normalize(delta(pivot, startPos));
         const toCur = normalize(delta(pivot, event));
@@ -281,7 +291,7 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   //</editor-fold>
 
   function render() {
-    renderToCss(element, state!, option.autoSize);
+    renderToCss(element, state!, option.autoSize, option.pivotOffset);
     if (option.autoSize) syncMeasuredSize();
     controls = updateControls(element, moving, option, selected);
   }
@@ -348,18 +358,38 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
 
   function syncMeasuredSize() {
     if (!state) return;
-    const measuredW = element.offsetWidth;
-    const measuredH = element.offsetHeight;
-    if (measuredW === state.width && measuredH === state.height) return;
-    const dx = measuredW - state.width;
-    const dy = measuredH - state.height;
+    const newWidth = element.offsetWidth;
+    const newHeight = element.offsetHeight;
+    if (state.width === -1) {
+      state.width = newWidth;
+      state.height = newHeight;
+      return;
+    }
+    if (newWidth === state.width && newHeight === state.height) return;
+    /*
+     * when the element resizes, the top left x & y remains the same
+     * but the pivot point is moved/no longer anchored
+     *
+     * so we just compute the old pivot and subtract the new pivot
+     * to get the translation to anchor the pivot
+     */
+    const oldPivotOffset = {
+      x: state.width / 2 + (option.pivotOffset?.x || 0) * state.width,
+      y: state.height / 2 + (option.pivotOffset?.y || 0) * state.height
+    }
+    const newPivotOffset = {
+      x: newWidth / 2 + (option.pivotOffset?.x || 0) * newWidth,
+      y: newHeight / 2 + (option.pivotOffset?.y || 0) * newHeight,
+    };
+    const translation = delta(newPivotOffset, oldPivotOffset);
+    console.log({width: state.width, height: state.height}, {newWidth, newHeight}, oldPivotOffset, newPivotOffset, translation);
 
     state = {
       ...state,
-      x: state.x - dx / 2,
-      y: state.y - dy / 2,
-      width: measuredW,
-      height: measuredH,
+      x: state.x + translation.x,
+      y: state.y + translation.y,
+      width: newWidth,
+      height: newHeight,
     };
   }
 

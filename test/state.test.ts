@@ -194,3 +194,76 @@ describe("centered conversion round trips", () => {
     });
   });
 });
+
+describe("centered with unit conversions", () => {
+  it("convertToPercent preserves the centered flag", () => {
+    const state: RectState = {
+      x: 400,
+      y: 300,
+      width: 200,
+      height: 100,
+      rotation: 0,
+      usePercent: false,
+      centered: true,
+    };
+
+    const result = convertToPercent(container, state);
+
+    expect(result.centered).toBe(true);
+    expect(result.usePercent).toBe(true);
+    expect(result.x).toBeCloseTo(0.5);
+    expect(result.y).toBeCloseTo(0.5);
+  });
+
+  it("convertToPixels preserves the centered flag", () => {
+    const state: RectState = {
+      x: 0.5,
+      y: 0.5,
+      width: 0.25,
+      height: 1 / 6,
+      rotation: 0,
+      usePercent: true,
+      centered: true,
+    };
+
+    const result = convertToPixels(container, state);
+
+    expect(result.centered).toBe(true);
+    expect(result.usePercent).toBe(false);
+    expect(result.x).toBeCloseTo(400);
+    expect(result.y).toBeCloseTo(300);
+  });
+
+  it("convertToPercent does not add centered flag when input is top-left", () => {
+    const state: RectState = {
+      x: 100,
+      y: 150,
+      width: 200,
+      height: 100,
+      rotation: 0,
+      usePercent: false,
+      centered: false,
+    };
+
+    const result = convertToPercent(container, state);
+
+    expect(result.centered).toBeFalsy();
+    expect(result.usePercent).toBe(true);
+  });
+
+  it("convertToCentered works when centered is undefined", () => {
+    const state: RectState = {
+      x: 100,
+      y: 150,
+      width: 200,
+      height: 100,
+      rotation: 0,
+    };
+
+    const result = convertToCentered(state);
+
+    expect(result.x).toBe(200);
+    expect(result.y).toBe(200);
+    expect(result.centered).toBe(true);
+  });
+});
