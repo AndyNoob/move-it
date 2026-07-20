@@ -30,7 +30,7 @@ const moving = createMoveMe(el, {
     width: 200,
     height: 120,
     rotation: 75,
-    // when usePercent = true, the x, y, width, and height values become percentages (0-1) relative to the control root
+    // when usePercent = true, the x, y, width, and height values become percentages (in decimal) relative to the control root
     usePercent: false,
     // when centered = true, the RectState represents the center of the element. it is converted back to the default
     // top left by subtracting half width and half height to the x and y. this can be used with usePercent
@@ -44,7 +44,11 @@ const moving = createMoveMe(el, {
   // when autoSize = true, the library stops assigning width and height directly via CSS, but rather syncs the 
   // `RectState` automatically whenever the size changes via DOM `ResizeObserver`. keeping the element centered on itself  
   // this also implicitly disables the resize feature. 
-  autoSize: false
+  autoSize: false,
+  // percent (expressed as decimal) of each axis to offset the pivot point of the moving element.
+  // this will impact the rotation pivot, the grid snapping location, and `autoSize` if enabled. the default pivot
+  // point is the center of the element. to make it top left, do `{x: -0.5, y: -0.5}`.
+  pivotOffset: {x: 0, y: 0}
 });
 ```
 
@@ -65,7 +69,7 @@ interface Moving {
   select: () => void,
   isSelected: () => boolean,
   checkBounds: () => void,
-  updateControls: () => Controls,
+  updateControls: (select: boolean) => Controls,
   getCollisionSiblings: () => Moving[],
   /**
    * You need to do this for both instances, the behavior is not mirrored by default
