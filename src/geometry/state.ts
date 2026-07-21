@@ -1,4 +1,4 @@
-import {normalizeDeg} from "./geometry";
+import {normalizeDeg, type Vec2} from "./geometry";
 
 /**
  * @description the `RectState` interface mirrors the default behavior of the CSS `transform` property. `x` and `y`
@@ -22,7 +22,13 @@ export interface RectState {
    * @description marks that this state object is representing a state whose `x` and `y` values are representing the
    * center of the rectangle rather than the top left.
    */
-  readonly centered?: boolean
+  readonly centered?: boolean,
+  /**
+   * @description marks that this state object is representing a state whose `x` and `y` values are representing the
+   * pivot point of the moving element. if the `pivotOffset` option is not set (or is 0, 0), then this has the same
+   * effect as the `centered` value
+   */
+  readonly anchored?: boolean,
 }
 
 interface Container {
@@ -67,7 +73,7 @@ export function rotateRect(
 export function convertToPercent(container: Container, state: RectState): RectState {
   if (state.usePercent) return state;
   const wasCentered = state.centered ?? false;
-  if (wasCentered) state = convertToTopLeft(state);
+  if (wasCentered) state = convertFromCentered(state);
   const left = state.x / container.offsetWidth;
   const top = state.y / container.offsetHeight;
   const width = state.width / container.offsetWidth;
@@ -79,7 +85,7 @@ export function convertToPercent(container: Container, state: RectState): RectSt
 export function convertToPixels(container: { offsetWidth: number, offsetHeight: number }, state: RectState): RectState {
   if (!state.usePercent) return state;
   const wasCentered = state.centered ?? false;
-  if (wasCentered) state = convertToTopLeft(state);
+  if (wasCentered) state = convertFromCentered(state);
   const x = state.x * container.offsetWidth;
   const y = state.y * container.offsetHeight;
   const width = state.width * container.offsetWidth;
@@ -98,7 +104,7 @@ export function convertToCentered(state: RectState): RectState {
   };
 }
 
-export function convertToTopLeft(state: RectState): RectState {
+export function convertFromCentered(state: RectState): RectState {
   if (!state.centered) return state;
   return {
     ...state,
@@ -106,4 +112,24 @@ export function convertToTopLeft(state: RectState): RectState {
     y: state.y - state.height / 2,
     centered: false
   };
+}
+
+export function convertToAnchored(state: RectState, offset: Vec2): RectState {
+  if (state.anchored) return state;
+  return {
+    ...state,
+    x: state.x + state.width / 2 + state.width * offset.x,
+    y: state.y + state.height / 2 + state.height * offset.y,
+    anchored: true
+  }
+}
+
+export function convertFromAnchored(state: RectState, offset: Vec2): RectState {
+  if (!state.anchored) return state;
+  return {
+    ...state,
+    x: state.x - state.width / 2 - state.width * offset.x,
+    y: state.y - state.height / 2 - state.height * offset.y,
+    anchored: false
+  }
 }

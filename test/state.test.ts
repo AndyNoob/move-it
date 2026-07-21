@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
 import type {RectState} from "../src";
-import {convertToCentered, convertToPercent, convertToPixels, convertToTopLeft,} from "../src";
+import {convertToCentered, convertToPercent, convertToPixels, convertFromCentered,} from "../src";
 
 const container = {
   offsetWidth: 800,
@@ -73,7 +73,7 @@ describe("convertToTopLeft", () => {
       centered: true,
     };
 
-    expect(convertToTopLeft(state)).toEqual({
+    expect(convertFromCentered(state)).toEqual({
       ...state,
       x: 100,
       y: 150,
@@ -92,7 +92,7 @@ describe("convertToTopLeft", () => {
       centered: true,
     };
 
-    expect(convertToTopLeft(state)).toEqual({
+    expect(convertFromCentered(state)).toEqual({
       ...state,
       x: 0.125,
       y: 0.25,
@@ -111,7 +111,7 @@ describe("convertToTopLeft", () => {
       centered: false,
     };
 
-    expect(convertToTopLeft(state)).toBe(state);
+    expect(convertFromCentered(state)).toBe(state);
   });
 });
 
@@ -128,7 +128,7 @@ describe("centered conversion round trips", () => {
     };
 
     const centered = convertToCentered(original);
-    const restored = convertToTopLeft(centered);
+    const restored = convertFromCentered(centered);
 
     expect(restored).toEqual(original);
   });
@@ -145,7 +145,7 @@ describe("centered conversion round trips", () => {
     };
 
     const centered = convertToCentered(original);
-    const restored = convertToTopLeft(centered);
+    const restored = convertFromCentered(centered);
 
     expect(restored.x).toBeCloseTo(original.x);
     expect(restored.y).toBeCloseTo(original.y);
