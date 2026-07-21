@@ -118,8 +118,8 @@ export function convertToAnchored(state: RectState, offset: Vec2): RectState {
   if (state.anchored) return state;
   return {
     ...state,
-    x: state.x + state.width / 2 + state.width * offset.x,
-    y: state.y + state.height / 2 + state.height * offset.y,
+    x: state.x + (state.centered ? 0 : state.width / 2) + state.width * offset.x,
+    y: state.y + (state.centered ? 0 : state.height / 2) + state.height * offset.y,
     anchored: true
   }
 }
@@ -128,8 +128,8 @@ export function convertFromAnchored(state: RectState, offset: Vec2): RectState {
   if (!state.anchored) return state;
   return {
     ...state,
-    x: state.x - state.width / 2 - state.width * offset.x,
-    y: state.y - state.height / 2 - state.height * offset.y,
+    x: state.x - (state.centered ? 0 : state.width / 2) - state.width * offset.x,
+    y: state.y - (state.centered ? 0 : state.height / 2) - state.height * offset.y,
     anchored: false
   }
 }
