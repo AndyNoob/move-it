@@ -20,15 +20,9 @@ export interface RectState {
   readonly usePercent?: boolean,
   /**
    * @description marks that this state object is representing a state whose `x` and `y` values are representing the
-   * center of the rectangle rather than the top left.
+   * center of the rectangle rather than the top left. this is affected by `pivotOffset`
    */
-  readonly centered?: boolean,
-  /**
-   * @description marks that this state object is representing a state whose `x` and `y` values are representing the
-   * pivot point of the moving element. if the `pivotOffset` option is not set (or is 0, 0), then this has the same
-   * effect as the `centered` value
-   */
-  readonly anchored?: boolean,
+  readonly centered?: boolean
 }
 
 interface Container {
@@ -70,66 +64,46 @@ export function rotateRect(
   };
 }
 
-export function convertToPercent(container: Container, state: RectState): RectState {
+export function convertToPercent(container: Container, state: RectState, pivotOffset?: Vec2): RectState {
   if (state.usePercent) return state;
   const wasCentered = state.centered ?? false;
-  if (wasCentered) state = convertFromCentered(state);
+  if (wasCentered) state = convertFromCentered(state, pivotOffset);
   const left = state.x / container.offsetWidth;
   const top = state.y / container.offsetHeight;
   const width = state.width / container.offsetWidth;
   const height = state.height / container.offsetHeight;
   const next = {...state, x: left, y: top, width, height, usePercent: true};
-  return wasCentered ? convertToCentered(next) : next;
+  return wasCentered ? convertToCentered(next, pivotOffset) : next;
 }
 
-export function convertToPixels(container: { offsetWidth: number, offsetHeight: number }, state: RectState): RectState {
+export function convertToPixels(container: Container, state: RectState, pivotOffset?: Vec2): RectState {
   if (!state.usePercent) return state;
   const wasCentered = state.centered ?? false;
-  if (wasCentered) state = convertFromCentered(state);
+  if (wasCentered) state = convertFromCentered(state, pivotOffset);
   const x = state.x * container.offsetWidth;
   const y = state.y * container.offsetHeight;
   const width = state.width * container.offsetWidth;
   const height = state.height * container.offsetHeight;
   const next = {...state, x, y, width, height, usePercent: false};
-  return wasCentered ? convertToCentered(next) : next;
+  return wasCentered ? convertToCentered(next, pivotOffset) : next;
 }
 
-export function convertToCentered(state: RectState): RectState {
+export function convertToCentered(state: RectState, pivotOffset?: Vec2): RectState {
   if (state.centered) return state;
   return {
     ...state,
-    x: state.x + state.width / 2,
-    y: state.y + state.height / 2,
+    x: state.x + state.width / 2 + (pivotOffset?.x || 0) * state.width,
+    y: state.y + state.height / 2 + (pivotOffset?.y || 0) * state.height,
     centered: true
   };
 }
 
-export function convertFromCentered(state: RectState): RectState {
+export function convertFromCentered(state: RectState, pivotOffset?: Vec2): RectState {
   if (!state.centered) return state;
   return {
     ...state,
-    x: state.x - state.width / 2,
-    y: state.y - state.height / 2,
+    x: state.x - state.width / 2 - (pivotOffset?.x || 0) * state.width,
+    y: state.y - state.height / 2 - (pivotOffset?.y || 0) * state.height,
     centered: false
   };
-}
-
-export function convertToAnchored(state: RectState, offset: Vec2): RectState {
-  if (state.anchored) return state;
-  return {
-    ...state,
-    x: state.x + (state.centered ? 0 : state.width / 2) + state.width * offset.x,
-    y: state.y + (state.centered ? 0 : state.height / 2) + state.height * offset.y,
-    anchored: true
-  }
-}
-
-export function convertFromAnchored(state: RectState, offset: Vec2): RectState {
-  if (!state.anchored) return state;
-  return {
-    ...state,
-    x: state.x - (state.centered ? 0 : state.width / 2) - state.width * offset.x,
-    y: state.y - (state.centered ? 0 : state.height / 2) - state.height * offset.y,
-    anchored: false
-  }
 }

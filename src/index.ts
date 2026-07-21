@@ -5,8 +5,6 @@ export {
   convertToPixels,
   convertFromCentered,
   convertToCentered,
-  convertFromAnchored,
-  convertToAnchored
 } from "./geometry/state"
 export { renderToCss } from "./dom/htmlUtil"
 

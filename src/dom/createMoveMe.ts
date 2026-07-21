@@ -1,6 +1,5 @@
 import {
-  convertFromAnchored,
-  convertFromCentered, convertToAnchored,
+  convertFromCentered,
   convertToCentered,
   convertToPercent,
   convertToPixels,
@@ -79,7 +78,7 @@ export interface Moving {
   /**
    * @description a copy of the current `RectState`.
    */
-  getState: (usePercent?: boolean, centered?: boolean, anchored?: boolean) => RectState,
+  getState: (usePercent?: boolean, centered?: boolean) => RectState,
   updateState: (partial: Partial<RectState>) => void,
   destroy: () => void,
   render: () => void,
@@ -115,17 +114,11 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   const siblings: Moving[] = [];
   let state: RectState = option && option.initialState ? option.initialState : computeState(element);
 
-  if (state.centered) state = convertFromCentered(state);
-  if (state.usePercent) state = convertToPixels(option.controlRoot, state);
-  if (state.anchored) {
-    if (!option.pivotOffset)
-      throw new Error("anchored initialState is provided when no pivotOffset is set in option");
-    state = convertFromAnchored(state, option.pivotOffset);
-  }
+  if (state.centered) state = convertFromCentered(state, option.pivotOffset);
+  if (state.usePercent) state = convertToPixels(option.controlRoot, state, option.pivotOffset);
   if (option.autoSize) {
     state.width = -1
     state.height = -1;
-    syncMeasuredSize();
   }
   if (option.initialState)
     renderToCss(element, state!, option.autoSize, option.pivotOffset);
@@ -361,8 +354,8 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
         prevSize = {offsetWidth: option.controlRoot.offsetWidth, offsetHeight: option.controlRoot.offsetHeight};
         return;
       }
-      const relativeState = convertToPercent(prevSize, state);
-      state = convertToPixels(option.controlRoot, relativeState);
+      const relativeState = convertToPercent(prevSize, state, option.pivotOffset);
+      state = convertToPixels(option.controlRoot, relativeState, option.pivotOffset);
       render();
       prevSize = {offsetWidth: option.controlRoot.offsetWidth, offsetHeight: option.controlRoot.offsetHeight};
     });
@@ -419,27 +412,17 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
   const moving: Moving = {
     element,
     id,
-    getState: (usePercent = false, centered = false, anchored = false) => {
+    getState: (usePercent = false, centered = false) => {
       if (option.autoSize) syncMeasuredSize();
       let s: RectState = state!;
-      if (usePercent) s = convertToPercent(option.controlRoot, s);
-      if (centered) s = convertToCentered(s);
-      if (anchored) {
-        if (!option.pivotOffset)
-          throw new Error("anchored state is requested when no pivotOffset is set in option");
-        s = convertToAnchored(s, option.pivotOffset);
-      }
+      if (usePercent) s = convertToPercent(option.controlRoot, s, option.pivotOffset);
+      if (centered) s = convertToCentered(s, option.pivotOffset);
       return {...s};
     },
     updateState: (partial: Partial<RectState>) => {
       let next = {...state!, ...partial};
-      if (next.usePercent) next = convertToPixels(option.controlRoot, next);
-      if (next.centered) next = convertFromCentered(next);
-      if (next.anchored) {
-        if (!option.pivotOffset)
-          throw new Error("anchored partial is provided when no pivotOffset is set in option");
-        next = convertFromAnchored(next, option.pivotOffset);
-      }
+      if (next.usePercent) next = convertToPixels(option.controlRoot, next, option.pivotOffset);
+      if (next.centered) next = convertFromCentered(next, option.pivotOffset);
       state = next;
       if (option.autoSize) syncMeasuredSize();
       if (option.onChange) option.onChange(state);

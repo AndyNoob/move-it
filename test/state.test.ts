@@ -1,6 +1,11 @@
-import {describe, expect, it} from "vitest";
-import type {RectState} from "../src";
-import {convertToAnchored, convertFromAnchored, convertToCentered, convertToPercent, convertToPixels, convertFromCentered} from "../src";
+import { describe, expect, it } from "vitest";
+import type { RectState } from "../src";
+import {
+  convertToCentered,
+  convertToPercent,
+  convertToPixels,
+  convertFromCentered,
+} from "../src";
 
 const container = {
   offsetWidth: 800,
@@ -268,306 +273,230 @@ describe("centered with unit conversions", () => {
   });
 });
 
-describe("anchored conversions", () => {
-  describe("convertToAnchored", () => {
-    it("converts top-left coordinates to anchored with zero offset (pivot = center)", () => {
-      const state: RectState = {
-        x: 100,
-        y: 150,
-        width: 200,
-        height: 100,
-        rotation: 0,
-      };
-
-      const result = convertToAnchored(state, { x: 0, y: 0 });
-
-      // x = 100 + 200/2 + 200*0 = 200
-      // y = 150 + 100/2 + 100*0 = 200
-      expect(result.x).toBe(200);
-      expect(result.y).toBe(200);
-      expect(result.anchored).toBe(true);
-    });
-
-    it("converts top-left coordinates to anchored with non-zero offset", () => {
-      const state: RectState = {
-        x: 100,
-        y: 150,
-        width: 200,
-        height: 100,
-        rotation: 0,
-      };
-
-      const result = convertToAnchored(state, { x: 0.5, y: -0.5 });
-
-      // x = 100 + 100 + 0.5*200 = 300
-      // y = 150 + 50 + (-0.5)*100 = 150
-      expect(result.x).toBe(300);
-      expect(result.y).toBe(150);
-      expect(result.anchored).toBe(true);
-    });
-
-    it("is idempotent when already anchored", () => {
-      const state: RectState = {
-        x: 200,
-        y: 200,
-        width: 200,
-        height: 100,
-        rotation: 0,
-        anchored: true,
-      };
-
-      const result = convertToAnchored(state, { x: 0.5, y: 0.5 });
-
-      expect(result).toBe(state);
-    });
-
-    it("converts from centered state, skipping half-dimension addition", () => {
-      const state: RectState = {
-        x: 200,
-        y: 200,
-        width: 200,
-        height: 100,
-        rotation: 0,
-        centered: true,
-      };
-
-      const result = convertToAnchored(state, { x: 0, y: 0 });
-
-      // centered skips adding half-dimensions:
-      // x = 200 + 0 + 0 = 200
-      // y = 200 + 0 + 0 = 200
-      expect(result.x).toBe(200);
-      expect(result.y).toBe(200);
-      expect(result.anchored).toBe(true);
-      expect(result.centered).toBe(true);
-    });
-
-    it("converts from centered state with non-zero offset", () => {
-      const state: RectState = {
-        x: 200,
-        y: 200,
-        width: 200,
-        height: 100,
-        rotation: 0,
-        centered: true,
-      };
-
-      const result = convertToAnchored(state, { x: 0.5, y: 0.5 });
-
-      // x = 200 + 0 + 0.5*200 = 300
-      // y = 200 + 0 + 0.5*100 = 250
-      expect(result.x).toBe(300);
-      expect(result.y).toBe(250);
-      expect(result.anchored).toBe(true);
-      expect(result.centered).toBe(true);
-    });
-  });
-
-  describe("convertFromAnchored", () => {
-    it("converts anchored coordinates back to top-left with zero offset", () => {
-      const state: RectState = {
-        x: 200,
-        y: 200,
-        width: 200,
-        height: 100,
-        rotation: 0,
-        anchored: true,
-      };
-
-      const result = convertFromAnchored(state, { x: 0, y: 0 });
-
-      // x = 200 - 200/2 - 0 = 100
-      // y = 200 - 100/2 - 0 = 150
-      expect(result.x).toBe(100);
-      expect(result.y).toBe(150);
-      expect(result.anchored).toBe(false);
-    });
-
-    it("converts anchored coordinates back with non-zero offset", () => {
-      const state: RectState = {
-        x: 300,
-        y: 150,
-        width: 200,
-        height: 100,
-        rotation: 0,
-        anchored: true,
-      };
-
-      const result = convertFromAnchored(state, { x: 0.5, y: -0.5 });
-
-      // x = 300 - 100 - 0.5*200 = 100
-      // y = 150 - 50 - (-0.5)*100 = 150
-      expect(result.x).toBe(100);
-      expect(result.y).toBe(150);
-      expect(result.anchored).toBe(false);
-    });
-
-    it("is idempotent when not anchored", () => {
-      const state: RectState = {
-        x: 100,
-        y: 150,
-        width: 200,
-        height: 100,
-        rotation: 0,
-      };
-
-      const result = convertFromAnchored(state, { x: 0.5, y: 0.5 });
-
-      expect(result).toBe(state);
-    });
-
-    it("returns anchored=false when converting from centered-anchored state", () => {
-      const state: RectState = {
-        x: 300,
-        y: 250,
-        width: 200,
-        height: 100,
-        rotation: 0,
-        centered: true,
-        anchored: true,
-      };
-
-      const result = convertFromAnchored(state, { x: 0.5, y: 0.5 });
-
-      // x = 300 - 0 - 0.5*200 = 200 (skips half-dim subtract since centered)
-      // y = 250 - 0 - 0.5*100 = 200
-      expect(result.x).toBe(200);
-      expect(result.y).toBe(200);
-      expect(result.anchored).toBe(false);
-      expect(result.centered).toBe(true);
-    });
-
-    it("restores top-left correctly from anchored when input was not centered", () => {
-      const state: RectState = {
-        x: 300,
-        y: 250,
-        width: 200,
-        height: 100,
-        rotation: 0,
-        anchored: true,
-      };
-
-      const result = convertFromAnchored(state, { x: 0.5, y: 0.5 });
-
-      // x = 300 - 100 - 0.5*200 = 100
-      // y = 250 - 50 - 0.5*100 = 150
-      expect(result.x).toBe(100);
-      expect(result.y).toBe(150);
-      expect(result.anchored).toBe(false);
-    });
-  });
-});
-
-describe("multi-family round trips", () => {
-  it("top-left → anchored → top-left round trip with offset {0,0}", () => {
-    const original: RectState = {
-      x: 100,
-      y: 150,
-      width: 200,
-      height: 100,
-      rotation: 30,
-    };
-    const offset = { x: 0, y: 0 };
-
-    const anchored = convertToAnchored(original, offset);
-    const restored = convertFromAnchored(anchored, offset);
-
-    expect(restored).toEqual({ ...original, anchored: false });
-  });
-
-  it("top-left → anchored → top-left round trip with non-zero offset", () => {
+describe("pixel ↔ percent round trips", () => {
+  it("round-trips top-left pixel state through percent and back", () => {
     const original: RectState = {
       x: 100,
       y: 150,
       width: 200,
       height: 100,
       rotation: 45,
+      usePercent: false,
+      centered: false,
     };
-    const offset = { x: 0.5, y: -0.25 };
 
-    const anchored = convertToAnchored(original, offset);
-    const restored = convertFromAnchored(anchored, offset);
+    const percent = convertToPercent(container, original);
+    const restored = convertToPixels(container, percent);
 
     expect(restored.x).toBeCloseTo(original.x);
     expect(restored.y).toBeCloseTo(original.y);
-    expect(restored.width).toBe(original.width);
-    expect(restored.height).toBe(original.height);
+    expect(restored.width).toBeCloseTo(original.width);
+    expect(restored.height).toBeCloseTo(original.height);
     expect(restored.rotation).toBe(original.rotation);
-    expect(restored.anchored).toBe(false);
+    expect(restored.usePercent).toBe(false);
+    expect(restored.centered).toBe(false);
   });
 
-  it("centered → anchored → centered round trip with non-zero offset", () => {
+  it("round-trips centered pixel state through percent and back", () => {
     const original: RectState = {
-      x: 200,
-      y: 200,
+      x: 400,
+      y: 300,
       width: 200,
       height: 100,
-      rotation: 22.5,
+      rotation: 90,
+      usePercent: false,
       centered: true,
     };
-    const offset = { x: 0.5, y: 0.5 };
 
-    const anchored = convertToAnchored(original, offset);
-    const restored = convertFromAnchored(anchored, offset);
+    const percent = convertToPercent(container, original);
+    const restored = convertToPixels(container, percent);
 
     expect(restored.x).toBeCloseTo(original.x);
     expect(restored.y).toBeCloseTo(original.y);
-    expect(restored.anchored).toBe(false);
+    expect(restored.width).toBeCloseTo(original.width);
+    expect(restored.height).toBeCloseTo(original.height);
+    expect(restored.rotation).toBe(original.rotation);
+    expect(restored.usePercent).toBe(false);
     expect(restored.centered).toBe(true);
   });
 
-  it("top-left → centered → anchored → centered → top-left three-way round trip", () => {
-    const original: RectState = {
-      x: 100,
-      y: 150,
-      width: 200,
-      height: 100,
-      rotation: 30,
+  it("convertToPercent is a no-op when already in percent", () => {
+    const state: RectState = {
+      x: 0.5,
+      y: 0.5,
+      width: 0.25,
+      height: 0.25,
+      rotation: 0,
+      usePercent: true,
     };
-    const offset = { x: -0.25, y: 0.5 };
+
+    const result = convertToPercent(container, state);
+
+    expect(result).toBe(state);
+  });
+
+  it("convertToPixels is a no-op when already in pixels", () => {
+    const state: RectState = {
+      x: 100,
+      y: 100,
+      width: 200,
+      height: 200,
+      rotation: 0,
+      usePercent: false,
+    };
+
+    const result = convertToPixels(container, state);
+
+    expect(result).toBe(state);
+  });
+
+  it("preserves rotation through percent ↔ pixel round-trip", () => {
+    const original: RectState = {
+      x: 200,
+      y: 100,
+      width: 300,
+      height: 150,
+      rotation: 270,
+      usePercent: false,
+    };
+
+    const percent = convertToPercent(container, original);
+    expect(percent.rotation).toBe(270);
+
+    const restored = convertToPixels(container, percent);
+    expect(restored.rotation).toBe(270);
+  });
+});
+
+describe("multi-conversion round trips", () => {
+  it("top-left → centered → percent → pixels → top-left (full identity chain)", () => {
+    const original: RectState = {
+      x: 160,
+      y: 120,
+      width: 320,
+      height: 240,
+      rotation: 45,
+      usePercent: false,
+      centered: false,
+    };
 
     const centered = convertToCentered(original);
-    const anchored = convertToAnchored(centered, offset);
-    const backToCentered = convertFromAnchored(anchored, offset);
-    const backToTopLeft = convertFromCentered(backToCentered);
+    const percent = convertToPercent(container, centered);
+    const pixels = convertToPixels(container, percent);
+    const backToTopLeft = convertFromCentered(pixels);
 
     expect(backToTopLeft.x).toBeCloseTo(original.x);
     expect(backToTopLeft.y).toBeCloseTo(original.y);
-    expect(backToTopLeft.width).toBe(original.width);
-    expect(backToTopLeft.height).toBe(original.height);
+    expect(backToTopLeft.width).toBeCloseTo(original.width);
+    expect(backToTopLeft.height).toBeCloseTo(original.height);
     expect(backToTopLeft.rotation).toBe(original.rotation);
+    expect(backToTopLeft.usePercent).toBe(false);
     expect(backToTopLeft.centered).toBe(false);
-    expect(backToTopLeft.anchored).toBeFalsy();
   });
 
-  it("anchored preserves identity through centered ↔ top-left conversions", () => {
+  it("centered → top-left → percent → pixels → centered (reverse chain)", () => {
     const original: RectState = {
-      x: 100,
-      y: 150,
+      x: 400,
+      y: 300,
       width: 200,
       height: 100,
-      rotation: 0,
+      rotation: 180,
+      usePercent: false,
+      centered: true,
     };
-    const offset = { x: 0.25, y: 0.25 };
 
-    const anchored = convertToAnchored(original, offset);
-    expect(anchored.anchored).toBe(true);
+    const topLeft = convertFromCentered(original);
+    const percent = convertToPercent(container, topLeft);
+    const pixels = convertToPixels(container, percent);
+    const backToCentered = convertToCentered(pixels);
 
-    // Anchored → centered: convertToCentered treats anchored x/y as top-left,
-    // so we get meaningful coordinates either way
-    const anchoredAndCentered = convertToCentered(anchored);
-    expect(anchoredAndCentered.centered).toBe(true);
-    expect(anchoredAndCentered.anchored).toBe(true);
+    expect(backToCentered.x).toBeCloseTo(original.x);
+    expect(backToCentered.y).toBeCloseTo(original.y);
+    expect(backToCentered.width).toBeCloseTo(original.width);
+    expect(backToCentered.height).toBeCloseTo(original.height);
+    expect(backToCentered.rotation).toBe(original.rotation);
+    expect(backToCentered.usePercent).toBe(false);
+    expect(backToCentered.centered).toBe(true);
+  });
 
-    // And back: convertFromCentered should still work
-    const anchoredTopLeft = convertFromCentered(anchoredAndCentered);
-    expect(anchoredTopLeft.centered).toBe(false);
-    expect(anchoredTopLeft.anchored).toBe(true);
+  it("percentage state survives centered ↔ top-left round-trip", () => {
+    const original: RectState = {
+      x: 0.2,
+      y: 0.3,
+      width: 0.4,
+      height: 0.2,
+      rotation: 15,
+      usePercent: true,
+      centered: false,
+    };
 
-    // Original round trip through anchored still works
-    const restored = convertFromAnchored(anchoredTopLeft, offset);
-    expect(restored.x).toBeCloseTo(original.x);
-    expect(restored.y).toBeCloseTo(original.y);
-    expect(restored.anchored).toBe(false);
+    const centered = convertToCentered(original);
+    const backToTopLeft = convertFromCentered(centered);
+
+    expect(backToTopLeft.x).toBeCloseTo(original.x);
+    expect(backToTopLeft.y).toBeCloseTo(original.y);
+    expect(backToTopLeft.usePercent).toBe(true);
+    expect(backToTopLeft.centered).toBe(false);
+  });
+});
+
+describe("edge cases", () => {
+  it("convertToPercent and convertToPixels preserve usePercent flag correctly", () => {
+    const pixelState: RectState = {
+      x: 200,
+      y: 150,
+      width: 400,
+      height: 300,
+      rotation: 0,
+      usePercent: false,
+    };
+
+    const percentState = convertToPercent(container, pixelState);
+    expect(percentState.usePercent).toBe(true);
+
+    const backToPixels = convertToPixels(container, percentState);
+    expect(backToPixels.usePercent).toBe(false);
+  });
+
+  it("convertToCentered followed by convertFromCentered restores original values with rotation", () => {
+    const angles = [0, 45, 90, 135, 180, 225, 270, 315, 359];
+
+    for (const angle of angles) {
+      const original: RectState = {
+        x: 100,
+        y: 200,
+        width: 150,
+        height: 75,
+        rotation: angle,
+        centered: false,
+      };
+
+      const centered = convertToCentered(original);
+      const restored = convertFromCentered(centered);
+
+      expect(restored).toEqual(original);
+    }
+  });
+
+  it("conversion chain works with undefined centered (implicit top-left)", () => {
+    const state: RectState = {
+      x: 100,
+      y: 100,
+      width: 200,
+      height: 200,
+      rotation: 0,
+      usePercent: false,
+    };
+
+    // centered should be undefined, treated as top-left
+    expect(state.centered).toBeUndefined();
+
+    const percent = convertToPercent(container, state);
+    expect(percent.usePercent).toBe(true);
+    expect(percent.centered).toBeFalsy();
+
+    const restored = convertToPixels(container, percent);
+    expect(restored.x).toBeCloseTo(state.x);
+    expect(restored.y).toBeCloseTo(state.y);
   });
 });

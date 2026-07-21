@@ -33,7 +33,8 @@ const moving = createMoveMe(el, {
     // when usePercent = true, the x, y, width, and height values become percentages (in decimal) relative to the control root
     usePercent: false,
     // when centered = true, the RectState represents the center of the element. it is converted back to the default
-    // top left by subtracting half width and half height to the x and y. this can be used with usePercent
+    // top left by subtracting half width and half height to the x and y. this can be used with usePercent.
+    // this is affected by `pivotOffset`
     centered: false
   },
   snapping, // optional
@@ -47,7 +48,7 @@ const moving = createMoveMe(el, {
   autoSize: false,
   // percent (expressed as decimal) of each axis to offset the pivot point of the moving element.
   // this will impact the rotation pivot, the grid snapping location, and `autoSize` if enabled. the default pivot
-  // point is the center of the element. to make it top left, do `{x: -0.5, y: -0.5}`.
+  // point is the center of the element. to make it top left, do `{x: -0.5, y: -0.5}`. this will affect `centered` states
   pivotOffset: {x: 0, y: 0}
 });
 ```
