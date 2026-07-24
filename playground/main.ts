@@ -51,13 +51,13 @@ w.moveMe2.addCollisionSibling(w.moveMe1);
 
 createMoveMe(document.querySelector("#move-me")!, {
   controlRoot: controlRoot,
-  doResize: true,
   snapping: {
     grid: {
       displayThreshold: 10,
       threshold: 4,
       verticalX: [0.5],
-      horizontalY: [0.9]
+      horizontalY: [0.9],
+      asPercent: true
     }
   }
 });
@@ -89,14 +89,25 @@ const lines = [
 
 const dialoguesEl = document.querySelector("#dialogues")! as HTMLElement;
 const dialoguesMoving = createMoveMe(dialoguesEl, {
-  doResize: true,
   controlRoot,
+  initialState: {
+    x: 0.1,
+    y: 0.1,
+    width: 0,
+    height: 0,
+    rotation: 0
+  },
+  initialStateFormat: {
+    centered: true,
+    asPercent: true
+  },
   snapping: {
     grid: {
       displayThreshold: 10,
       threshold: 4,
       verticalX: [0.5],
-      horizontalY: [0.9]
+      horizontalY: [0.9],
+      asPercent: true
     }
   },
   autoSize: true,

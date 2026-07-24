@@ -1,7 +1,7 @@
 import {getControlBox, getDistanceToLine} from "./htmlUtil";
 import type {MoveMeOpt, Moving, SnappingOpt} from "./createMoveMe";
 import {normalizeDeg} from "../geometry/geometry";
-import type {RectState} from "../geometry/state";
+import {convertTo, type RectState} from "../geometry/state";
 
 //<editor-fold defaultstate="collapsed" desc="Control interface">
 export interface Controls {
@@ -114,7 +114,7 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
     box.appendChild(document.createElement("div"));
   const state = moving.getState();
 
-  updateContainer(container, selected, target, el, state, options);
+  updateContainer(container, selected, target, el, state, options, moving);
 
   const controls: Controls = {
     container,
@@ -161,17 +161,18 @@ export function updateControls(el: HTMLElement, moving: Moving, options: MoveMeO
   return controls;
 }
 
-function updateContainer(container: HTMLElement, selected: boolean, target: string, el: HTMLElement, state: RectState, options: MoveMeOpt) {
+function updateContainer(container: HTMLElement, selected: boolean, target: string, el: HTMLElement, state: RectState, options: MoveMeOpt, moving: Moving) {
   container.style.visibility = selected ? "visible" : "hidden";
   if (!container.classList.contains("container")) container.classList.add("container");
   container.dataset.moveItTarget = target;
   const pivot = options.pivotOffset ?? {x: 0, y: 0};
+  const converted = convertTo(moving, options, state);
   container.style.transformOrigin = `
     ${el.offsetWidth / 2 + el.offsetWidth * pivot.x}px 
     ${el.offsetHeight / 2 + el.offsetHeight * pivot.y}px
   `;
   container.style.transform = `
-    translate(${state.x - LINE_SIZE / 2}px, ${state.y - LINE_SIZE / 2}px)
+    translate(${converted.x - LINE_SIZE / 2}px, ${converted.y - LINE_SIZE / 2}px)
     rotate(${state.rotation}deg)
   `;
 }
@@ -283,7 +284,7 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, opti
     const offset = vertical ? parentBox.left : parentBox.top;
     const distanceToLine = getDistanceToLine(
       rect,
-      (options.doResize ? (vertical ? options.controlRoot.offsetWidth : options.controlRoot.offsetHeight) : 1) * val + offset,
+      (grid?.asPercent ? (vertical ? options.controlRoot.offsetWidth : options.controlRoot.offsetHeight) : 1) * val + offset,
       !vertical
     );
     if (!moving.isSelected() || distanceToLine > snapping!.grid!.displayThreshold) {
@@ -294,11 +295,11 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, opti
       const className = vertical ? "vert-grid" : "hori-grid";
       if (!line.classList.contains(className)) line.classList.add(className);
       if (vertical) {
-        line.style.left = `${(options.doResize ? options.controlRoot.offsetWidth : 1) * val}px`;
+        line.style.left = `${(grid?.asPercent ? options.controlRoot.offsetWidth : 1) * val}px`;
         line.style.height = `${options.controlRoot.offsetHeight}px`;
       }
       else {
-        line.style.top = `${(options.doResize ? options.controlRoot.offsetHeight : 1) * val}px`;
+        line.style.top = `${(grid?.asPercent ? options.controlRoot.offsetHeight : 1) * val}px`;
         line.style.width = `${options.controlRoot.offsetWidth}px`;
       }
       line.style.visibility = "visible";

@@ -1,4 +1,5 @@
-import {normalizeDeg, type Vec2} from "./geometry";
+import {normalizeDeg} from "./geometry";
+import type {FormatOptions, MoveMeOpt, Moving} from "../dom/createMoveMe";
 
 /**
  * @description the `RectState` interface mirrors the default behavior of the CSS `transform` property. `x` and `y`
@@ -12,17 +13,7 @@ export interface RectState {
   /**
    * @description degrees, 0-360
    */
-  rotation: number,
-  /**
-   * @description when `true`, the `x`, `y`, `width`, and `height` properties become relative to the `controlRoot`'s
-   * width and height
-   */
-  readonly usePercent?: boolean,
-  /**
-   * @description marks that this state object is representing a state whose `x` and `y` values are representing the
-   * center of the rectangle rather than the top left. this is affected by `pivotOffset`
-   */
-  readonly centered?: boolean
+  rotation: number
 }
 
 interface Container {
@@ -31,10 +22,16 @@ interface Container {
 }
 
 export function moveRect(
+  opt: MoveMeOpt,
   start: RectState,
   dx: number,
   dy: number
 ): RectState {
+  const asPercent = opt.initialStateFormat?.asPercent;
+  if (asPercent) {
+    dx /= opt.controlRoot.offsetWidth;
+    dy /= opt.controlRoot.offsetHeight;
+  }
   return {
     ...start,
     x: start.x + dx,
@@ -43,14 +40,21 @@ export function moveRect(
 }
 
 export function resizeRect(
+  opt: MoveMeOpt,
   start: RectState,
   dx: number,
   dy: number
 ): RectState {
+  const asPercent = opt.initialStateFormat?.asPercent;
+  if (asPercent) {
+    dx /= opt.controlRoot.offsetWidth;
+    dy /= opt.controlRoot.offsetHeight;
+  }
+  const min = asPercent ? 20 / opt.controlRoot.offsetWidth : 20;
   return {
     ...start,
-    width: Math.max(20, start.width + dx),
-    height: Math.max(20, start.height + dy),
+    width: Math.max(min, start.width + dx),
+    height: Math.max(min, start.height + dy),
   };
 }
 
@@ -64,46 +68,72 @@ export function rotateRect(
   };
 }
 
-export function convertToPercent(container: Container, state: RectState, pivotOffset?: Vec2): RectState {
-  if (state.usePercent) return state;
-  const wasCentered = state.centered ?? false;
-  if (wasCentered) state = convertFromCentered(state, pivotOffset);
+export function convertTo(
+  moving: Moving,
+  opt: MoveMeOpt,
+  state: RectState,
+  targetFormat: FormatOptions = {centered: false, asPercent: false}
+): RectState {
+  let newState = {...state};
+  const currentFormat = opt.initialStateFormat || {centered: false, asPercent: false};
+  const controlRoot = opt.controlRoot;
+
+  if (currentFormat.asPercent !== targetFormat.asPercent) {
+    if (targetFormat.asPercent) {
+      // currently in pixels, divide by control root size
+      newState = convertToPercent(controlRoot, newState);
+    } else {
+      // currently in percent
+      newState = convertToPixels(controlRoot, newState);
+    }
+  }
+
+  if (currentFormat.centered !== targetFormat.centered) {
+    let width: number;
+    if (opt.autoSize) {
+      width = moving.element.offsetWidth;
+      if (targetFormat.asPercent)
+        width /= controlRoot.offsetWidth;
+    } else {
+      width = newState.width;
+    }
+    let height: number;
+    if (opt.autoSize) {
+      height = moving.element.offsetHeight;
+      if (targetFormat.asPercent)
+        height /= controlRoot.offsetHeight;
+    } else {
+      height = newState.height;
+    }
+
+    const offset = opt.pivotOffset || {x: 0, y: 0};
+
+    if (targetFormat.centered) {
+      // convert from top left to centered
+      newState.x += width * (offset.x + 0.5);
+      newState.y += height * (offset.y + 0.5);
+    } else {
+      // convert from centered to top left
+      newState.x -= width * (offset.x + 0.5);
+      newState.y -= height * (offset.y + 0.5);
+    }
+  }
+
+  return newState;
+}
+
+function convertToPercent(container: Container, state: RectState): RectState {
   const left = state.x / container.offsetWidth;
   const top = state.y / container.offsetHeight;
   const width = state.width / container.offsetWidth;
   const height = state.height / container.offsetHeight;
-  const next = {...state, x: left, y: top, width, height, usePercent: true};
-  return wasCentered ? convertToCentered(next, pivotOffset) : next;
+  return {...state, x: left, y: top, width, height};
 }
 
-export function convertToPixels(container: Container, state: RectState, pivotOffset?: Vec2): RectState {
-  if (!state.usePercent) return state;
-  const wasCentered = state.centered ?? false;
-  if (wasCentered) state = convertFromCentered(state, pivotOffset);
+function convertToPixels(container: Container, state: RectState): RectState {
   const x = state.x * container.offsetWidth;
   const y = state.y * container.offsetHeight;
   const width = state.width * container.offsetWidth;
   const height = state.height * container.offsetHeight;
-  const next = {...state, x, y, width, height, usePercent: false};
-  return wasCentered ? convertToCentered(next, pivotOffset) : next;
-}
-
-export function convertToCentered(state: RectState, pivotOffset?: Vec2): RectState {
-  if (state.centered) return state;
-  return {
-    ...state,
-    x: state.x + state.width / 2 + (pivotOffset?.x || 0) * state.width,
-    y: state.y + state.height / 2 + (pivotOffset?.y || 0) * state.height,
-    centered: true
-  };
-}
-
-export function convertFromCentered(state: RectState, pivotOffset?: Vec2): RectState {
-  if (!state.centered) return state;
-  return {
-    ...state,
-    x: state.x - state.width / 2 - (pivotOffset?.x || 0) * state.width,
-    y: state.y - state.height / 2 - (pivotOffset?.y || 0) * state.height,
-    centered: false
-  };
+  return {...state, x, y, width, height};
 }

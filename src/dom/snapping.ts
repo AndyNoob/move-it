@@ -1,34 +1,47 @@
-import type {RectState} from "../geometry/state";
-import type {MoveMeOpt, SnappingGrid, SnappingRotation} from "./createMoveMe";
+import {convertTo, moveRect, type RectState} from "../geometry/state";
+import type {MoveMeOpt, Moving, SnappingGrid, SnappingRotation} from "./createMoveMe";
 import {normalizeDeg} from "../geometry/geometry";
 
-export function handleDragSnap(state: RectState, grid: SnappingGrid, options: MoveMeOpt) {
-  const halfWidth = state.width / 2;
-  const halfHeight = state.height / 2;
+export function handleDragSnap(moving: Moving, state: RectState, grid: SnappingGrid, options: MoveMeOpt) {
+  const converted = convertTo(moving, moving.getOptions(), state);
+  const width = moving.element.offsetWidth;
+  const height = moving.element.offsetHeight;
+  const halfWidth = width / 2;
+  const halfHeight = height / 2;
+
+  const x = converted.x;
+  const y = converted.y;
+
+  let newX = x;
+  let newY = y;
+
   const offset = options.pivotOffset ?? {x: 0, y: 0};
   const pivot = {
-    x: (state.x + halfWidth) + offset.x * state.width, 
-    y: (state.y + halfHeight) + offset.y * state.height
+    x: (x + halfWidth) + offset.x * width,
+    y: (y + halfHeight) + offset.y * height
   };
-  if (!grid) return;
+
+  if (!grid) return state;
   if (grid.horizontalY) {
     for (let number of grid.horizontalY) {
-      number = (options.doResize ? options.controlRoot.offsetHeight : 1) * number;
+      number = (grid.asPercent ? options.controlRoot.offsetHeight : 1) * number;
       if (Math.abs(number - pivot.y) < grid.threshold) {
-        state.y = number - halfHeight - offset.y * state.height;
+        newY = number - halfHeight - offset.y * height;
         break;
       }
     }
   }
   if (grid.verticalX) {
     for (let number of grid.verticalX) {
-      number = (options.doResize ? options.controlRoot.offsetWidth : 1) * number;
+      number = (grid.asPercent ? options.controlRoot.offsetWidth : 1) * number;
       if (Math.abs(number - pivot.x) < grid.threshold) {
-        state.x = number - halfWidth - offset.x * state.width;
+        newX = number - halfWidth - offset.x * width;
         break;
       }
     }
   }
+
+  return moveRect(moving.getOptions(), state, newX - x, newY - y);
 }
 
 export function handleRotateSnap(rotSnap: SnappingRotation, angle: number) {

@@ -1,13 +1,4 @@
-import {
-  convertFromCentered,
-  convertToCentered,
-  convertToPercent,
-  convertToPixels,
-  moveRect,
-  type RectState,
-  resizeRect,
-  rotateRect
-} from "../geometry/state"
+import {convertTo, moveRect, type RectState, resizeRect, rotateRect} from "../geometry/state"
 import {getGlobalPivot, getRotation, renderToCss} from "./htmlUtil";
 import type {Controls, DotDesignation, LineDesignation} from "./controls";
 import {updateControls} from "./controls";
@@ -15,8 +6,18 @@ import {cross, delta, dot, normalize, radToDeg, rotate, scale, type Vec2} from "
 import {handleDragSnap, handleRotateSnap} from "./snapping";
 import {findOverlap} from "../geometry/findOverlap";
 
+export interface FormatOptions {
+  centered?: boolean,
+  asPercent?: boolean,
+}
+
 export interface MoveMeOpt {
   initialState?: RectState,
+  /**
+   * @description by setting `asPercent`, the library will automatically scale the element whenever the control root
+   * changes dimension. by setting `centered`, the library will always anchor the element at the designated pivot point
+   */
+  initialStateFormat?: FormatOptions,
   snapping?: SnappingOpt,
   onChange?: (next: RectState) => void,
   /**
@@ -25,7 +26,6 @@ export interface MoveMeOpt {
    */
   controlRoot: HTMLElement,
   disableFeatures?: DisableFeatures,
-  doResize?: boolean,
   /**
    * @description when `true`, the library stops assigning width and height directly via CSS, but rather syncs the
    * `RectState` automatically whenever the size changes via DOM `ResizeObserver`. this also implicitly disables the
@@ -55,7 +55,11 @@ export interface SnappingGrid {
    */
   displayThreshold: number,
   verticalX?: number[],
-  horizontalY?: number[]
+  horizontalY?: number[],
+  /**
+   * should the values be in pixels or percent (decimal)
+   */
+  asPercent?: boolean
 }
 
 export interface SnappingRotation {
@@ -76,9 +80,12 @@ export interface Moving {
   element: HTMLElement,
   id: string,
   /**
-   * @description a copy of the current `RectState`.
+   * @description a copy of the current `RectState`. in the format option provided in the initial options
    */
-  getState: (usePercent?: boolean, centered?: boolean) => RectState,
+  getState: () => RectState,
+  /**
+   * @description partial in the format option provided in the initial options
+   */
   updateState: (partial: Partial<RectState>) => void,
   destroy: () => void,
   render: () => void,
@@ -95,6 +102,7 @@ export interface Moving {
    */
   addCollisionSibling: (sibling: Moving) => void,
   removeCollisionSibling: (sibling: Moving) => void,
+  getOptions: () => MoveMeOpt
 }
 
 export function computeState(element: HTMLElement) {
@@ -107,212 +115,138 @@ export function computeState(element: HTMLElement) {
   }
 }
 
-export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
-  const id = generateUID();
-  element.dataset.moveItId = id;
+class MovingClass implements Moving {
 
-  const siblings: Moving[] = [];
-  let state: RectState = option && option.initialState ? option.initialState : computeState(element);
+  id: string;
+  element: HTMLElement;
+  state: RectState;
+  readonly options: MoveMeOpt;
+  siblings: Moving[] = [];
+  controls: Controls;
 
-  if (state.centered) state = convertFromCentered(state, option.pivotOffset);
-  if (state.usePercent) state = convertToPixels(option.controlRoot, state, option.pivotOffset);
-  if (option.autoSize) {
-    state.width = -1
-    state.height = -1;
-  }
-  if (option.initialState)
-    renderToCss(element, state!, option.autoSize, option.pivotOffset);
+  selected = false;
+  mode: "drag" | "resize" | "rotate" | null = null;
+  designation: Exclude<DotDesignation, "rotate"> | Exclude<LineDesignation, "rotate"> | null = null;
+  startPos: Vec2 | null = null;
+  lastPos: Vec2 | null = null;
+  startState: RectState | null = null;
 
-  let selected = false;
+  readonly sizeObs: ResizeObserver | null = null;
+  readonly pctObs: ResizeObserver | null = null;
 
-  let mode: "drag" | "resize" | "rotate" | null = null;
-  let designation: Exclude<DotDesignation, "rotate"> | Exclude<LineDesignation, "rotate"> | null = null;
+  onPointerDown: (e: Event) => void;
+  onPointerMove: (e: Event) => void;
+  onPointerUp: (e: Event) => void;
+  onKeydown: (e: Event) => void;
+  onShiftRatio: (e: Event) => void;
+  onArrowKeys: (e: Event) => void;
 
-  let startPos: Vec2 | null;
-  let lastPos: Vec2 | null;
-  let startState: RectState | null;
+  constructor(element: HTMLElement, options: MoveMeOpt) {
+    this.element = element;
+    this.options = options;
+    this.state = options && options.initialState ? options.initialState : computeState(element);
 
-  function onPointerMove(event: { x: number, y: number, shiftKey: boolean }) {
-    if (!state || !startPos || !startState || !lastPos || !mode) return;
+    this.id = generateUID();
+    element.dataset.moveItId = this.id;
 
-    const old = {...state};
-    const movement = delta(lastPos, event);
+    if (options.initialState)
+      renderToCss(element, this.state, options.initialStateFormat?.centered, options.pivotOffset);
 
-    switch (mode) {
-      case "drag": {
-        state = moveRect(state, movement.x, movement.y);
-        const grid = option?.snapping?.grid;
-        if (grid && !event.shiftKey) handleDragSnap(state, grid, option);
-        break;
-      }
-      case "resize": {
-        if (!designation) throw Error("designation is null (resize) in pointer move")
-        state = handleResize(designation, state, event.shiftKey, movement);
-        break;
-      }
-      case "rotate": {
-        const pivot = getGlobalPivot(element, option.pivotOffset);
+    window.addEventListener("pointerdown", this.onPointerDown = (e) => onPointerDown(this, e as PointerEvent));
+    window.addEventListener("pointermove", this.onPointerMove = (e) => onPointerMove(this, e as PointerEvent));
+    window.addEventListener("pointerup", this.onPointerUp = () => onPointerUp(this));
+    window.addEventListener("keydown", this.onKeydown = (e) => onKeydown(this, e as KeyboardEvent));
+    window.addEventListener("keyup", this.onShiftRatio = (e) => onShiftRatio(this, e as KeyboardEvent));
+    this.onArrowKeys = (e) => onArrowKeys(this, e as KeyboardEvent);
 
-        const toStart = normalize(delta(pivot, startPos));
-        const toCur = normalize(delta(pivot, event));
-        const rad = Math.atan2(cross(toStart, toCur), dot(toStart, toCur));
-        let angle = startState.rotation + radToDeg(rad);
+    this.pctObs = new ResizeObserver(() => {
+      this.render();
+    });
+    this.pctObs.observe(options.controlRoot);
 
-        if (!event.shiftKey && option?.snapping && option.snapping.rotation) {
-          angle = handleRotateSnap(option.snapping.rotation, angle);
-        }
-
-        state = rotateRect(state, angle);
-        break;
-      }
+    if (options.autoSize) {
+      this.sizeObs = new ResizeObserver(() => {
+        this.render();
+        if (options.onChange) options.onChange(this.state);
+        this.controls = updateControls(element, this, options, this.selected);
+      });
+      this.sizeObs.observe(element);
     }
 
-    if (!state) throw new Error("state is undef after processing pointer move");
-
-    const finalDiff = delta(old, state);
-    checkBounds(finalDiff.x, finalDiff.y);
-
-    lastPos = event;
-
-    if (option?.onChange)
-      option?.onChange(state);
-    render();
+    this.controls = updateControls(element, this, options, false);
   }
 
-  //<editor-fold desc="Listeners" defaultstate="collapsed">
-  function onPointerDown(event: PointerEvent) {
-    if (!(event.target instanceof HTMLElement)) {
-      selected = false;
-      render();
-      return;
-    }
-
-    const sameElement = element.isSameNode(event.target);
-    const dotClick = controls.getDotDesignation(event.target);
-    const lineClick = controls.getLineDesignation(event.target);
-
-    if (!(sameElement || dotClick || (lineClick && lineClick.name !== "rotate"))) {
-      selected = false;
-      render();
-      return;
-    }
-
-    selected = true;
-    render();
-
-    if (sameElement) {
-      mode = "drag";
-    } else {
-      if (dotClick?.name === "rotate") mode = "rotate";
-      else {
-        designation = (dotClick || lineClick)!;
-        mode = "resize";
-      }
-    }
-
-    switch (mode) {
-      case "resize":
-        if (option.disableFeatures?.resize || option.autoSize) mode = null;
-        break;
-      case "drag":
-        if (option.disableFeatures?.drag) mode = null;
-        break;
-      case "rotate":
-        if (option.disableFeatures?.rotate) mode = null;
-        break;
-    }
-
-    startState = state!;
-    startPos = lastPos = event;
+  getState() {
+    return this.state;
   }
 
-  function onPointerUp() {
-    mode = null;
-    startPos = null;
-    lastPos = null;
-    startState = null;
+  getOptions() {
+    return this.options;
   }
 
-  function onShiftRatio(event: KeyboardEvent) {
-    if (mode !== "resize") return;
-    if (!startState || !lastPos || !startPos || !designation) return;
-    if (!event.key.toLowerCase().includes("shift")) return;
-    if (designation?.cardinal) return;
-    if (event.shiftKey) {
-      state = startState;
-    } else {
-      // now unpressing it, free ratio and recalc to cursor
-      state = handleResize(designation!,
-        state,
-        event.shiftKey,
-        {x: lastPos.x - startPos.x, y: lastPos.y - startPos.y}
-      );
-    }
-    if (option?.onChange)
-      option?.onChange(state!);
-    render();
+  render() {
+    renderToCss(
+      this.element,
+      convertTo(this, this.options, this.state),
+      this.options.autoSize,
+      this.options.pivotOffset
+    );
+    this.controls = updateControls(this.element, this, this.options, this.selected);
   }
 
-  function onArrowKeys(event: KeyboardEvent) {
-    if (!state) return;
-    if (!selected) return;
-    if (mode != null) return;
-    let key = event.key.toLowerCase();
-    if (!key.startsWith("arrow")) return;
-    key = key.slice(5);
-    const d = {x: 0, y: 0};
-    const step =
-      event.shiftKey ? 10 : (event.altKey ? 0.5 : 1);
-    switch (key) {
-      case "left":
-        d.x = -step;
-        break;
-      case "right":
-        d.x = step;
-        break;
-      case "up":
-        d.y = -step;
-        break;
-      case "down":
-        d.y = step;
-        break;
-    }
-    state = moveRect(state, d.x, d.y);
-    if (option.onChange)
-      option.onChange(state);
-    render();
+  destroy() {
+    this.controls.destroy();
+    delete this.element.dataset.moveItId;
+    window.removeEventListener("pointerdown", this.onPointerDown);
+    window.removeEventListener("pointermove", this.onPointerMove);
+    window.removeEventListener("pointerup", this.onPointerUp);
+    window.removeEventListener("keydown", this.onKeydown);
+    window.removeEventListener("keyup", this.onShiftRatio);
+    if (this.pctObs) this.pctObs.disconnect();
+    if (this.sizeObs) this.sizeObs.disconnect();
   }
 
-  function keydown(event: KeyboardEvent) {
-    onShiftRatio(event);
-    onArrowKeys(event);
+  updateState(partial: Partial<RectState>) {
+    this.state = {...this.state, ...partial};
+    if (this.options.onChange) this.options.onChange(this.state);
+    this.render();
   }
 
-  window.addEventListener("pointerdown", onPointerDown);
-  window.addEventListener("pointermove", onPointerMove);
-  window.addEventListener("pointerup", onPointerUp);
-  window.addEventListener("keydown", keydown);
-  window.addEventListener("keyup", onShiftRatio);
-
-  //</editor-fold>
-
-  function render() {
-    renderToCss(element, state!, option.autoSize, option.pivotOffset);
-    if (option.autoSize) syncMeasuredSize();
-    controls = updateControls(element, moving, option, selected);
+  updateControls(select = false) {
+    return this.controls = updateControls(this.element, this, this.options, this.selected = select);
   }
 
-  function checkBounds(dx = 0, dy = 0): boolean {
-    if (!state) return false;
+  isSelected() {
+    return this.selected
+  }
+
+  getCollisionSiblings() {
+    return this.siblings;
+  }
+
+  removeCollisionSibling(sibling: Moving) {
+    this.siblings.filter(m => m.id === sibling.id)
+  }
+
+  addCollisionSibling(sibling: Moving) {
+    this.siblings.push(sibling)
+  }
+
+  select() {
+    this.selected = true;
+    this.controls = updateControls(this.element, this, this.options);
+  }
+
+  checkBounds(dx = 0, dy = 0): boolean {
     let changed = false;
-    const clientRect = element.getBoundingClientRect();
+    const clientRect = this.element.getBoundingClientRect();
     const rect = {
       left: clientRect.left,
       right: clientRect.right,
       top: clientRect.top,
       bottom: clientRect.bottom,
     };
-    const bounds = option.controlRoot.getBoundingClientRect();
+    const bounds = this.options.controlRoot.getBoundingClientRect();
 
     rect.left += dx;
     rect.right += dx;
@@ -320,151 +254,198 @@ export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
     rect.bottom += dy;
 
     if (rect.left < bounds.left) {
-      state = moveRect(state, bounds.left - rect.left, 0);
+      this.state = moveRect(this.options, this.state, bounds.left - rect.left, 0);
       changed = true;
     }
     if (rect.right > bounds.right) {
-      state = moveRect(state, bounds.right - rect.right, 0);
+      this.state = moveRect(this.options, this.state, bounds.right - rect.right, 0);
       changed = true;
     }
     if (rect.top < bounds.top) {
-      state = moveRect(state, 0, bounds.top - rect.top);
+      this.state = moveRect(this.options, this.state, 0, bounds.top - rect.top);
       changed = true;
     }
     if (rect.bottom > bounds.bottom) {
-      state = moveRect(state, 0, bounds.bottom - rect.bottom);
+      this.state = moveRect(this.options, this.state, 0, bounds.bottom - rect.bottom);
       changed = true;
     }
 
-    for (const sibling of siblings) {
-      const shift = findOverlap(state, sibling.getState());
+    for (const sibling of this.siblings) {
+      const shift = findOverlap(
+        convertTo(this, this.options, this.state),
+        convertTo(sibling, sibling.getOptions(), sibling.getState())
+      );
       if (!shift) continue;
-      state = moveRect(state, shift.x, shift.y);
+      this.state = moveRect(this.options, this.state, shift.x, shift.y);
       changed = true;
     }
 
     return changed;
   }
+}
 
-  let pctObs: ResizeObserver | null = null;
-  if (option.doResize) {
-    let prevSize: { offsetWidth: number, offsetHeight: number } | null = null;
-    pctObs = new ResizeObserver(() => {
-      if (prevSize === null) {
-        prevSize = {offsetWidth: option.controlRoot.offsetWidth, offsetHeight: option.controlRoot.offsetHeight};
-        return;
-      }
-      const relativeState = convertToPercent(prevSize, state, option.pivotOffset);
-      state = convertToPixels(option.controlRoot, relativeState, option.pivotOffset);
-      render();
-      prevSize = {offsetWidth: option.controlRoot.offsetWidth, offsetHeight: option.controlRoot.offsetHeight};
-    });
-    pctObs.observe(option.controlRoot);
+export function createMoveMe(element: HTMLElement, option: MoveMeOpt): Moving {
+  return new MovingClass(element, option);
+}
+
+function onPointerDown(moving: MovingClass, event: PointerEvent) {
+  if (!(event.target instanceof HTMLElement)) {
+    moving.selected = false;
+    moving.render();
+    return;
   }
 
-  function syncMeasuredSize() {
-    if (!state) return;
-    const newWidth = element.offsetWidth;
-    const newHeight = element.offsetHeight;
-    if (state.width === -1) {
-      state.width = newWidth;
-      state.height = newHeight;
-      return;
+  const sameElement = moving.element.isSameNode(event.target);
+  const dotClick = moving.controls.getDotDesignation(event.target);
+  const lineClick = moving.controls.getLineDesignation(event.target);
+
+  if (!(sameElement || dotClick || (lineClick && lineClick.name !== "rotate"))) {
+    moving.selected = false;
+    moving.render();
+    return;
+  }
+
+  moving.selected = true;
+  moving.render();
+
+  if (sameElement) {
+    moving.mode = "drag";
+  } else {
+    if (dotClick?.name === "rotate") moving.mode = "rotate";
+    else {
+      moving.designation = (dotClick || lineClick)!;
+      moving.mode = "resize";
     }
-    if (newWidth === state.width && newHeight === state.height) return;
-    /*
-     * when the element resizes, the top left x & y remains the same
-     * but the pivot point is moved/no longer anchored
-     *
-     * so we just compute the old pivot and subtract the new pivot
-     * to get the translation to anchor the pivot
-     */
-    const oldPivotOffset = {
-      x: state.width / 2 + (option.pivotOffset?.x || 0) * state.width,
-      y: state.height / 2 + (option.pivotOffset?.y || 0) * state.height
+  }
+
+  switch (moving.mode) {
+    case "resize":
+      if (moving.options.disableFeatures?.resize
+        || moving.options.autoSize) moving.mode = null;
+      break;
+    case "drag":
+      if (moving.options.disableFeatures?.drag) moving.mode = null;
+      break;
+    case "rotate":
+      if (moving.options.disableFeatures?.rotate) moving.mode = null;
+      break;
+  }
+
+  moving.startState = moving.state!;
+  moving.startPos = moving.lastPos = event;
+}
+
+function onPointerMove(moving: MovingClass, event: { x: number, y: number, shiftKey: boolean }) {
+  if (!moving.state || !moving.startPos || !moving.startState || !moving.lastPos || !moving.mode) return;
+
+  const old = {...moving.state};
+  const movement = delta(moving.lastPos, event);
+
+  switch (moving.mode) {
+    case "drag": {
+      moving.state = moveRect(moving.options, moving.state, movement.x, movement.y);
+      const grid = moving.options?.snapping?.grid;
+      if (grid && !event.shiftKey) moving.state = handleDragSnap(moving, moving.state, grid, moving.options);
+      break;
     }
-    const newPivotOffset = {
-      x: newWidth / 2 + (option.pivotOffset?.x || 0) * newWidth,
-      y: newHeight / 2 + (option.pivotOffset?.y || 0) * newHeight,
-    };
-    const translation = delta(newPivotOffset, oldPivotOffset);
+    case "resize": {
+      if (!moving.designation) throw Error("designation is null (resize) in pointer move")
+      moving.state = handleResize(moving.designation, moving.options, moving.state, event.shiftKey, movement);
+      break;
+    }
+    case "rotate": {
+      const pivot = getGlobalPivot(moving.element, moving.options.pivotOffset);
 
-    state = {
-      ...state,
-      x: state.x + translation.x,
-      y: state.y + translation.y,
-      width: newWidth,
-      height: newHeight,
-    };
-  }
+      const toStart = normalize(delta(pivot, moving.startPos));
+      const toCur = normalize(delta(pivot, event));
+      const rad = Math.atan2(cross(toStart, toCur), dot(toStart, toCur));
+      let angle = moving.startState.rotation + radToDeg(rad);
 
-  let sizeObs: ResizeObserver | null = null;
-  if (option.autoSize) {
-    sizeObs = new ResizeObserver(() => {
-      syncMeasuredSize();
-      render();
-      if (option.onChange) option.onChange(state!);
-      controls = updateControls(element, moving, option, selected);
-    });
-    sizeObs.observe(element);
-  }
-
-  const moving: Moving = {
-    element,
-    id,
-    getState: (usePercent = false, centered = false) => {
-      if (option.autoSize) syncMeasuredSize();
-      let s: RectState = state!;
-      if (usePercent) s = convertToPercent(option.controlRoot, s, option.pivotOffset);
-      if (centered) s = convertToCentered(s, option.pivotOffset);
-      return {...s};
-    },
-    updateState: (partial: Partial<RectState>) => {
-      let next = {...state!, ...partial};
-      if (next.usePercent) next = convertToPixels(option.controlRoot, next, option.pivotOffset);
-      if (next.centered) next = convertFromCentered(next, option.pivotOffset);
-      state = next;
-      if (option.autoSize) syncMeasuredSize();
-      if (option.onChange) option.onChange(state);
-      render();
-    },
-    destroy: () => {
-      controls.destroy();
-      delete element.dataset.moveItId;
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("keydown", keydown);
-      window.removeEventListener("keyup", onShiftRatio);
-      if (pctObs) pctObs.disconnect();
-      if (sizeObs) sizeObs.disconnect();
-    },
-    render,
-    select: () => {
-      selected = true;
-      controls = updateControls(element, moving, option);
-    },
-    updateControls: (select = false) => {
-      return controls = updateControls(element, moving, option, selected = select);
-    },
-    checkBounds: () => {
-      if (checkBounds() && state) {
-        if (option.onChange)
-          option.onChange(state);
-        render();
+      if (!event.shiftKey && moving.options?.snapping && moving.options.snapping.rotation) {
+        angle = handleRotateSnap(moving.options.snapping.rotation, angle);
       }
-    },
-    isSelected: () => selected,
-    getCollisionSiblings: () => siblings,
-    removeCollisionSibling: (sibling: Moving) => siblings.filter(m => m.id === sibling.id),
-    addCollisionSibling: (sibling: Moving) => siblings.push(sibling),
-  };
 
-  let controls = updateControls(element, moving, option, false);
-  return moving
+      moving.state = rotateRect(moving.state, angle);
+      break;
+    }
+  }
+
+  const finalDiff = delta(old, moving.state);
+  moving.checkBounds(finalDiff.x, finalDiff.y);
+
+  moving.lastPos = event;
+
+  if (moving.options?.onChange)
+    moving.options?.onChange(moving.state);
+  moving.render();
+}
+
+function onPointerUp(moving: MovingClass) {
+  moving.mode = null;
+  moving.startPos = null;
+  moving.lastPos = null;
+  moving.startState = null;
+}
+
+function onShiftRatio(moving: MovingClass, event: KeyboardEvent) {
+  if (moving.mode !== "resize") return;
+  if (!moving.startState || !moving.lastPos || !moving.startPos || !moving.designation) return;
+  if (!event.key.toLowerCase().includes("shift")) return;
+  if (moving.designation?.cardinal) return;
+  if (event.shiftKey) {
+    moving.state = moving.startState;
+  } else {
+    // now unpressing it, free ratio and recalc to cursor
+    moving.state = handleResize(
+      moving.designation!,
+      moving.options,
+      moving.state,
+      event.shiftKey,
+      {x: moving.lastPos.x - moving.startPos.x, y: moving.lastPos.y - moving.startPos.y}
+    );
+  }
+  if (moving.options?.onChange)
+    moving.options?.onChange(moving.state!);
+  moving.render();
+}
+
+function onArrowKeys(moving: MovingClass, event: KeyboardEvent) {
+  if (!moving.state) return;
+  if (!moving.selected) return;
+  if (moving.mode != null) return;
+  let key = event.key.toLowerCase();
+  if (!key.startsWith("arrow")) return;
+  key = key.slice(5);
+  const d = {x: 0, y: 0};
+  const step =
+    event.shiftKey ? 10 : (event.altKey ? 0.5 : 1);
+  switch (key) {
+    case "left":
+      d.x = -step;
+      break;
+    case "right":
+      d.x = step;
+      break;
+    case "up":
+      d.y = -step;
+      break;
+    case "down":
+      d.y = step;
+      break;
+  }
+  moving.state = moveRect(moving.options, moving.state, d.x, d.y);
+  if (moving.options.onChange)
+    moving.options.onChange(moving.state);
+  moving.render();
+}
+
+function onKeydown(moving: MovingClass, event: KeyboardEvent) {
+  moving.onShiftRatio(event);
+  moving.onArrowKeys(event);
 }
 
 function handleResize(designation: DotDesignation | LineDesignation,
+                      moveMeOpt: MoveMeOpt,
                       state: RectState,
                       shiftKey: boolean,
                       movement: Vec2): RectState {
@@ -483,17 +464,17 @@ function handleResize(designation: DotDesignation | LineDesignation,
   }
 
   const old = {...state};
-  state = resizeRect(state, dx, dy);
+  state = resizeRect(moveMeOpt, state, dx, dy);
 
   if (state.rotation === 0) {
     if (designation.direction.x < 0) {
       const adjust = scale(horizontal, dx);
-      state = moveRect(state, adjust.x, adjust.y);
+      state = moveRect(moveMeOpt, state, adjust.x, adjust.y);
     }
 
     if (designation.direction.y < 0) {
       const adjust = scale(vertical, dy);
-      state = moveRect(state, adjust.x, adjust.y);
+      state = moveRect(moveMeOpt, state, adjust.x, adjust.y);
     }
 
     return state;
@@ -510,7 +491,7 @@ function handleResize(designation: DotDesignation | LineDesignation,
       state.y -= dy / 2;
     }
 
-    return moveRect(state, h.x + v.x, h.y + v.y);
+    return moveRect(moveMeOpt, state, h.x + v.x, h.y + v.y);
   }
 }
 

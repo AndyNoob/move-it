@@ -28,10 +28,12 @@ and apply that to one of the boxes.
 
  */
 
+/**
+ * @param a `RectState` in the top left, non-percentage configuration
+ * @param b `RectState` in the top left, non-percentage configuration
+ * @param debugLog whether to do debug logging or not (for testing purposes)
+ */
 export function findOverlap(a: RectState, b: RectState, debugLog = false): Vec2 | null {
-  if (a.usePercent || b.usePercent) {
-    throw new Error("convert RectState object with convertToPixels first");
-  }
   const ab = getBasis(a);
   const bb = getBasis(b);
   const axes: Vec2[] = [
