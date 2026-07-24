@@ -292,13 +292,15 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, opti
     } else {
       const line = existing
         || controlBox.appendChild(document.createElement("div"));
+
       const className = vertical ? "vert-grid" : "hori-grid";
+
       if (!line.classList.contains(className)) line.classList.add(className);
+
       if (vertical) {
         line.style.left = `${(grid?.asPercent ? options.controlRoot.offsetWidth : 1) * val}px`;
         line.style.height = `${options.controlRoot.offsetHeight}px`;
-      }
-      else {
+      } else {
         line.style.top = `${(grid?.asPercent ? options.controlRoot.offsetHeight : 1) * val}px`;
         line.style.width = `${options.controlRoot.offsetWidth}px`;
       }
@@ -309,14 +311,16 @@ function getGuides(controlBox: HTMLElement, target: string, moving: Moving, opti
     }
   }
 
-  if (grid.verticalX)
+  if (grid.verticalX) {
     for (const vert of grid.verticalX) {
       makeSureItExists(vert, true);
     }
-  if (grid.horizontalY)
+  }
+  if (grid.horizontalY) {
     for (const hori of grid.horizontalY) {
       makeSureItExists(hori, false);
     }
+  }
   return {horizontal: Object.values(allGuides.horizontal), vertical: Object.values(allGuides.vertical)};
 }
 

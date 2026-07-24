@@ -109,12 +109,3 @@ export function getDistanceToLine(rect: DOMRect, k: number, horizontal: boolean)
     return 0; // Line intersects the element horizontally
   }
 }
-
-export function getGlobalPivot(element: HTMLElement, pivotOffset?: Vec2) {
-  const rect = element.getBoundingClientRect();
-
-  return {
-    x: rect.left + rect.width / 2 + (pivotOffset?.x || 0) * rect.width,
-    y: rect.top + rect.height / 2 + (pivotOffset?.y || 0) * rect.height
-  };
-}

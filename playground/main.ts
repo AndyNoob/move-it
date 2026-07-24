@@ -59,6 +59,10 @@ createMoveMe(document.querySelector("#move-me")!, {
       horizontalY: [0.9],
       asPercent: true
     }
+  },
+  format: {
+    centered: true,
+    asPercent: true
   }
 });
 

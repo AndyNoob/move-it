@@ -1,5 +1,5 @@
 import {convertTo, moveRect, type RectState, resizeRect, rotateRect} from "../geometry/state"
-import {getGlobalPivot, getRotation, renderToCss} from "./htmlUtil";
+import {getRotation, renderToCss} from "./htmlUtil";
 import type {Controls, DotDesignation, LineDesignation} from "./controls";
 import {updateControls} from "./controls";
 import {cross, delta, dot, normalize, radToDeg, rotate, scale, type Vec2} from "../geometry/geometry";
@@ -105,14 +105,27 @@ export interface Moving {
   getOptions: () => MoveMeOpt
 }
 
-export function computeState(element: HTMLElement) {
-  return {
-    x: ((element.parentElement?.clientLeft || 0) - element.clientLeft),
-    y: ((element.parentElement?.clientTop || 0) - element.clientTop),
+export function computeState(element: HTMLElement, options: MoveMeOpt) {
+  const format = options.format;
+  const controlRoot = options.controlRoot;
+  const state = {
+    x: element.offsetLeft,
+    y: element.offsetTop,
     width: element.offsetWidth,
     height: element.offsetHeight,
     rotation: getRotation(element),
+  };
+  if (format?.centered) {
+    state.x += state.width / 2;
+    state.y += state.height / 2;
   }
+  if (format?.asPercent) {
+    state.x /= controlRoot.offsetWidth;
+    state.width /= controlRoot.offsetWidth;
+    state.y /= controlRoot.offsetHeight;
+    state.height /= controlRoot.offsetHeight;
+  }
+  return state;
 }
 
 class MovingClass implements Moving {
@@ -127,8 +140,8 @@ class MovingClass implements Moving {
   selected = false;
   mode: "drag" | "resize" | "rotate" | null = null;
   designation: Exclude<DotDesignation, "rotate"> | Exclude<LineDesignation, "rotate"> | null = null;
-  startPos: Vec2 | null = null;
-  lastPos: Vec2 | null = null;
+  mouseStartPos: Vec2 | null = null;
+  mousePrevPos: Vec2 | null = null;
   startState: RectState | null = null;
 
   readonly sizeObs: ResizeObserver | null = null;
@@ -144,7 +157,7 @@ class MovingClass implements Moving {
   constructor(element: HTMLElement, options: MoveMeOpt) {
     this.element = element;
     this.options = options;
-    this.state = options && options.initialState ? options.initialState : computeState(element);
+    this.state = options && options.initialState ? options.initialState : computeState(element, options);
 
     this.id = generateUID();
     element.dataset.moveItId = this.id;
@@ -338,14 +351,14 @@ function onPointerDown(moving: MovingClass, event: PointerEvent) {
   }
 
   moving.startState = moving.state!;
-  moving.startPos = moving.lastPos = event;
+  moving.mouseStartPos = moving.mousePrevPos = event;
 }
 
 function onPointerMove(moving: MovingClass, event: { x: number, y: number, shiftKey: boolean }) {
-  if (!moving.state || !moving.startPos || !moving.startState || !moving.lastPos || !moving.mode) return;
+  if (!moving.state || !moving.mouseStartPos || !moving.startState || !moving.mousePrevPos || !moving.mode) return;
 
   const old = {...moving.state};
-  const movement = delta(moving.lastPos, event);
+  const movement = delta(moving.mousePrevPos, event);
 
   switch (moving.mode) {
     case "drag": {
@@ -356,15 +369,33 @@ function onPointerMove(moving: MovingClass, event: { x: number, y: number, shift
     }
     case "resize": {
       if (!moving.designation) throw Error("designation is null (resize) in pointer move")
-      moving.state = handleResize(moving.designation, moving.options, moving.state, event.shiftKey, movement);
+      moving.state = handleResize(
+        moving.designation,
+        moving.options,
+        moving.state,
+        event.shiftKey,
+        movement
+      );
       break;
     }
     case "rotate": {
-      const pivot = getGlobalPivot(moving.element, moving.options.pivotOffset);
+      const state = convertTo(moving, moving.getOptions(), moving.state);
+      const pivot = {
+        x: state.x + state.width * (0.5 + (moving.options.pivotOffset?.x || 0)),
+        y: state.y + state.height * (0.5 + (moving.options.pivotOffset?.y || 0))
+      };
+      const rect = moving.options.controlRoot.getBoundingClientRect();
+      pivot.x += rect.left;
+      pivot.y += rect.top;
 
-      const toStart = normalize(delta(pivot, moving.startPos));
+      const toStart = normalize(delta(pivot, moving.mouseStartPos));
       const toCur = normalize(delta(pivot, event));
-      const rad = Math.atan2(cross(toStart, toCur), dot(toStart, toCur));
+
+      const rad = Math.atan2(
+        cross(toStart, toCur),
+        dot(toStart, toCur)
+      );
+
       let angle = moving.startState.rotation + radToDeg(rad);
 
       if (!event.shiftKey && moving.options?.snapping && moving.options.snapping.rotation) {
@@ -379,7 +410,7 @@ function onPointerMove(moving: MovingClass, event: { x: number, y: number, shift
   const finalDiff = delta(old, moving.state);
   moving.checkBounds(finalDiff.x, finalDiff.y);
 
-  moving.lastPos = event;
+  moving.mousePrevPos = event;
 
   if (moving.options?.onChange)
     moving.options?.onChange(moving.state);
@@ -388,14 +419,14 @@ function onPointerMove(moving: MovingClass, event: { x: number, y: number, shift
 
 function onPointerUp(moving: MovingClass) {
   moving.mode = null;
-  moving.startPos = null;
-  moving.lastPos = null;
+  moving.mouseStartPos = null;
+  moving.mousePrevPos = null;
   moving.startState = null;
 }
 
 function onShiftRatio(moving: MovingClass, event: KeyboardEvent) {
   if (moving.mode !== "resize") return;
-  if (!moving.startState || !moving.lastPos || !moving.startPos || !moving.designation) return;
+  if (!moving.startState || !moving.mousePrevPos || !moving.mouseStartPos || !moving.designation) return;
   if (!event.key.toLowerCase().includes("shift")) return;
   if (moving.designation?.cardinal) return;
   if (event.shiftKey) {
@@ -407,7 +438,7 @@ function onShiftRatio(moving: MovingClass, event: KeyboardEvent) {
       moving.options,
       moving.state,
       event.shiftKey,
-      {x: moving.lastPos.x - moving.startPos.x, y: moving.lastPos.y - moving.startPos.y}
+      {x: moving.mousePrevPos.x - moving.mouseStartPos.x, y: moving.mousePrevPos.y - moving.mouseStartPos.y}
     );
   }
   if (moving.options?.onChange)
