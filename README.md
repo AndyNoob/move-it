@@ -30,20 +30,20 @@ const moving = createMoveMe(el, {
     width: 200,
     height: 120,
     rotation: 75,
-    // when usePercent = true, the x, y, width, and height values become percentages (in decimal) relative to the control root
-    usePercent: false,
-    // when centered = true, the RectState represents the center of the element. it is converted back to the default
-    // top left by subtracting half width and half height to the x and y. this can be used with usePercent.
-    // this is affected by `pivotOffset`
+  },
+  format: {
+    // when asPercent = true, the x, y, width, and height values is in 
+    // percentages (in decimal) relative to the control root
+    asPercent: false,
+    // when centered = true, the RectState represents the pivot of the element (which can be changed
+    // by `pivotOffset`). this can be used with usePercent. when this is paired with `autoSize`,
+    // the library will keep the element centered on the pivot point whenever resizing happens
     centered: false
   },
   snapping, // optional
   controlRoot, // required, sets the bounds for the object
-  // when doResize = true, the moving element will resize with control root. 
-  // this also impact snapping (see section on snapping)
-  doResize: false,
   // when autoSize = true, the library stops assigning width and height directly via CSS, but rather syncs the 
-  // `RectState` automatically whenever the size changes via DOM `ResizeObserver`. keeping the element centered on itself  
+  // `RectState` automatically whenever the size changes via DOM `ResizeObserver`.   
   // this also implicitly disables the resize feature. 
   autoSize: false,
   // percent (expressed as decimal) of each axis to offset the pivot point of the moving element.
@@ -61,9 +61,12 @@ interface Moving {
   element: HTMLElement,
   id: string,
   /**
-   * a copy of the current `RectState`.
+   * @description a copy of the current `RectState`. in the format option provided in the initial options
    */
-  getState: (usePercent?: boolean, centered?: boolean) => RectState,
+  getState: () => RectState,
+  /**
+   * @description partial in the format option provided in the options
+   */
   updateState: (partial: Partial<RectState>) => void,
   destroy: () => void,
   render: () => void,
@@ -80,6 +83,7 @@ interface Moving {
    */
   addCollisionSibling: (sibling: Moving) => void,
   removeCollisionSibling: (sibling: Moving) => void,
+  getOptions: () => MoveMeOpt
 }
 ```
 

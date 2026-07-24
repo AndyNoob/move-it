@@ -84,7 +84,7 @@ export interface Moving {
    */
   getState: () => RectState,
   /**
-   * @description partial in the format option provided in the initial options
+   * @description partial in the format option provided in the options
    */
   updateState: (partial: Partial<RectState>) => void,
   destroy: () => void,
