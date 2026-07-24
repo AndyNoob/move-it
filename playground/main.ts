@@ -97,7 +97,7 @@ const dialoguesMoving = createMoveMe(dialoguesEl, {
     height: 0,
     rotation: 0
   },
-  initialStateFormat: {
+  format: {
     centered: true,
     asPercent: true
   },

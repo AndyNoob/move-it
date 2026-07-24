@@ -17,7 +17,7 @@ export interface MoveMeOpt {
    * @description by setting `asPercent`, the library will automatically scale the element whenever the control root
    * changes dimension. by setting `centered`, the library will always anchor the element at the designated pivot point
    */
-  initialStateFormat?: FormatOptions,
+  format?: FormatOptions,
   snapping?: SnappingOpt,
   onChange?: (next: RectState) => void,
   /**
@@ -150,7 +150,7 @@ class MovingClass implements Moving {
     element.dataset.moveItId = this.id;
 
     if (options.initialState)
-      renderToCss(element, this.state, options.initialStateFormat?.centered, options.pivotOffset);
+      renderToCss(element, this.state, options.format?.centered, options.pivotOffset);
 
     window.addEventListener("pointerdown", this.onPointerDown = (e) => onPointerDown(this, e as PointerEvent));
     window.addEventListener("pointermove", this.onPointerMove = (e) => onPointerMove(this, e as PointerEvent));
@@ -166,6 +166,12 @@ class MovingClass implements Moving {
 
     if (options.autoSize) {
       this.sizeObs = new ResizeObserver(() => {
+        this.state.width = element.offsetWidth;
+        this.state.height = element.offsetHeight;
+        if (options.format?.asPercent) {
+          this.state.width /= options.controlRoot.offsetWidth;
+          this.state.height /= options.controlRoot.offsetHeight;
+        }
         this.render();
         if (options.onChange) options.onChange(this.state);
         this.controls = updateControls(element, this, options, this.selected);

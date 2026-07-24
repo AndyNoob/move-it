@@ -27,7 +27,7 @@ export function moveRect(
   dx: number,
   dy: number
 ): RectState {
-  const asPercent = opt.initialStateFormat?.asPercent;
+  const asPercent = opt.format?.asPercent;
   if (asPercent) {
     dx /= opt.controlRoot.offsetWidth;
     dy /= opt.controlRoot.offsetHeight;
@@ -45,7 +45,7 @@ export function resizeRect(
   dx: number,
   dy: number
 ): RectState {
-  const asPercent = opt.initialStateFormat?.asPercent;
+  const asPercent = opt.format?.asPercent;
   if (asPercent) {
     dx /= opt.controlRoot.offsetWidth;
     dy /= opt.controlRoot.offsetHeight;
@@ -75,7 +75,7 @@ export function convertTo(
   targetFormat: FormatOptions = {centered: false, asPercent: false}
 ): RectState {
   let newState = {...state};
-  const currentFormat = opt.initialStateFormat || {centered: false, asPercent: false};
+  const currentFormat = opt.format || {centered: false, asPercent: false};
   const controlRoot = opt.controlRoot;
 
   if (currentFormat.asPercent !== targetFormat.asPercent) {
