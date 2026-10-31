@@ -503,32 +503,36 @@ function handleResize(designation: DotDesignation | LineDesignation,
   const old = {...state};
   state = resizeRect(moveMeOpt, state, dx, dy);
 
-  if (state.rotation === 0) {
-    if (designation.direction.x < 0) {
-      const adjust = scale(horizontal, dx);
-      state = moveRect(moveMeOpt, state, adjust.x, adjust.y);
-    }
+  if (!moveMeOpt.format?.centered) {
+    if (state.rotation === 0) {
+      if (designation.direction.x < 0) {
+        const adjust = scale(horizontal, dx);
+        state = moveRect(moveMeOpt, state, adjust.x, adjust.y);
+      }
 
-    if (designation.direction.y < 0) {
-      const adjust = scale(vertical, dy);
-      state = moveRect(moveMeOpt, state, adjust.x, adjust.y);
-    }
+      if (designation.direction.y < 0) {
+        const adjust = scale(vertical, dy);
+        state = moveRect(moveMeOpt, state, adjust.x, adjust.y);
+      }
 
-    return state;
+      return state;
+    } else {
+      // shift half as much in each direction
+      const h = scale(horizontal, dx / 2);
+      const v = scale(vertical, dy / 2);
+
+      {
+        // adjust for pivot point change
+        const dx = state.width - old.width;
+        const dy = state.height - old.height;
+        state.x -= dx / 2;
+        state.y -= dy / 2;
+      }
+
+      return moveRect(moveMeOpt, state, h.x + v.x, h.y + v.y);
+    }
   } else {
-    // shift half as much in each direction
-    const h = scale(horizontal, dx / 2);
-    const v = scale(vertical, dy / 2);
-
-    {
-      // adjust for pivot point change
-      const dx = state.width - old.width;
-      const dy = state.height - old.height;
-      state.x -= dx / 2;
-      state.y -= dy / 2;
-    }
-
-    return moveRect(moveMeOpt, state, h.x + v.x, h.y + v.y);
+    return state;
   }
 }
 
